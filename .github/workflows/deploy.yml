@@ -44,6 +44,21 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Check SSH configuration
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          if [ -z "$VPS_HOST" ]; then
+            echo "::error::VPS_HOST is empty or unavailable to this workflow"
+            exit 1
+          fi
+          if [ -z "$VPS_USER" ]; then
+            echo "::error::VPS_USER is empty or unavailable to this workflow"
+            exit 1
+          fi
+          echo "VPS_HOST is configured"
+          echo "VPS_USER is configured"
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
