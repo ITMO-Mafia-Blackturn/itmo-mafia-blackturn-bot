@@ -48,34 +48,33 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
+          FP: ${{ secrets.VPS_HOST_FINGERPRINT }}
         run: |
-          echo "Fingerprint length: ${#FP}"
-          if [[ "$FP" == SHA256:* ]]; then
-            echo "Starts with SHA256 prefix: yes"
-          else
-            echo "Starts with SHA256 prefix: no"
-          fi
-          if [[ "$FP" =~ ^SHA256:[A-Za-z0-9+/]+={0,2}$ ]]; then
-            echo "Fingerprint format: valid"
-          else
-            echo "Fingerprint format: unexpected"
-          fi
-          if [[ "$VPS_HOST_FINGERPRINT" =~ ^SHA256:[A-Za-z0-9+/]+$ ]]; then
-            echo "Fingerprint format looks valid"
-          else
-            echo "::error::Fingerprint is empty or has an unexpected format"
-            exit 1
-          fi
           if [ -z "$VPS_HOST" ]; then
-            echo "::error::VPS_HOST is empty or unavailable to this workflow"
+            echo "::error::VPS_HOST is empty"
             exit 1
           fi
+
           if [ -z "$VPS_USER" ]; then
-            echo "::error::VPS_USER is empty or unavailable to this workflow"
+            echo "::error::VPS_USER is empty"
             exit 1
           fi
+
+          if [ -z "$FP" ]; then
+            echo "::error::VPS_HOST_FINGERPRINT is empty"
+            exit 1
+          fi
+
           echo "VPS_HOST is configured"
           echo "VPS_USER is configured"
+          echo "Fingerprint length: ${#FP}"
+
+          if [[ "$FP" == SHA256:* ]]; then
+            echo "Fingerprint prefix: OK"
+          else
+            echo "::error::Fingerprint must start with SHA256:"
+            exit 1
+          fi
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -86,7 +85,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: GHCR_USER,GHCR_TOKEN
+          envs: GHCR_USER, GHCR_TOKEN
           port: 41830
           script: |
             set -eu
