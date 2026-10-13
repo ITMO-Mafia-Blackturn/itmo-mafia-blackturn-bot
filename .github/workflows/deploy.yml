@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,97 +44,65 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check SSH configuration
+      - name: Configure SSH
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_FINGERPRINT: ${{ secrets.VPS_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -p 41830 -t ed25519 "$VPS_HOST" \
+            2>/dev/null > ~/.ssh/known_hosts
+
+          ACTUAL=$(ssh-keygen -lf ~/.ssh/known_hosts -E sha256 | awk '{print $2}')
+
+          if [ "$ACTUAL" != "$VPS_HOST_FINGERPRINT" ]; then
+            echo "::error::SSH host fingerprint mismatch"
+            exit 1
+          fi
+
+          echo "SSH host fingerprint verified"
+
+      - name: Login to GHCR on VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
-          FP: ${{ secrets.VPS_HOST_FINGERPRINT }}
-        run: |
-          if [ -z "$VPS_HOST" ]; then
-            echo "::error::VPS_HOST is empty"
-            exit 1
-          fi
-
-          if [ -z "$VPS_USER" ]; then
-            echo "::error::VPS_USER is empty"
-            exit 1
-          fi
-
-          if [ -z "$FP" ]; then
-            echo "::error::VPS_HOST_FINGERPRINT is empty"
-            exit 1
-          fi
-
-          echo "VPS_HOST is configured"
-          echo "VPS_USER is configured"
-          echo "Fingerprint length: ${#FP}"
-
-          if [[ "$FP" == SHA256:* ]]; then
-            echo "Fingerprint prefix: OK"
-          else
-            echo "::error::Fingerprint must start with SHA256:"
-            exit 1
-          fi
-      
-      - name: Verify host key seen by runner
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          FP: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          GHCR_USER: ${{ secrets.GHCR_USER }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
           set -euo pipefail
 
-          echo "DNS addresses:"
-          getent ahosts "$VPS_HOST" | awk '{print $1}' | sort -u
+          printf '%s' "$GHCR_TOKEN" | ssh \
+            -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=yes \
+            -p 41830 \
+            "$VPS_USER@$VPS_HOST" \
+            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
 
-          matched=0
-
-          for type in ed25519 ecdsa rsa; do
-            scan="$(ssh-keyscan -p 41830 -T 10 -t "$type" "$VPS_HOST" 2>/dev/null || true)"
-
-            if [ -n "$scan" ]; then
-              fingerprints="$(printf '%s\n' "$scan" | ssh-keygen -lf - -E sha256 | awk '{print $2}')"
-
-              while IFS= read -r actual; do
-                echo "$type: $actual"
-                if [ "$actual" = "$FP" ]; then
-                  matched=1
-                  echo "Fingerprint matches for $type"
-                fi
-              done <<< "$fingerprints"
-            fi
-          done
-
-          if [ "$matched" -ne 1 ]; then
-            echo "::error::Runner does not see the expected host fingerprint"
-            exit 1
-          fi
-      - name: Compare configured fingerprint
+      - name: Deploy bot
         env:
-          FP: ${{ secrets.VPS_HOST_FINGERPRINT }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
         run: |
-          printf '%s' "$FP" 
-          printf '%s' "$FP" | od -An -tx1
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          GHCR_USER: ${{ secrets.GHCR_USER }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
-          envs: GHCR_USER, GHCR_TOKEN
-          port: 41830
-          script: |
-            set -eu
-            echo "$GHCR_TOKEN" | docker login ghcr.io \
-              -u "$GHCR_USER" --password-stdin
-            cd /opt/mafia
-            docker compose pull bot
-            docker compose up -d --no-deps bot
-            sleep 5
-            docker inspect mafia-bot \
-              --format '{{.State.Status}}'
-            docker logs --tail 60 mafia-bot
+          set -euo pipefail
+
+          ssh \
+            -i ~/.ssh/id_ed25519 \
+            -o StrictHostKeyChecking=yes \
+            -p 41830 \
+            "$VPS_USER@$VPS_HOST" \
+            'set -eu
+             cd /opt/mafia
+             docker compose pull bot
+             docker compose up -d --no-deps bot
+             sleep 5
+             docker inspect mafia-bot --format "{{.State.Status}}"
+             docker logs --tail 60 mafia-bot'
