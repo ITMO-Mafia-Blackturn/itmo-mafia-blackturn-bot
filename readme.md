@@ -104,13 +104,14 @@ ___
 ## Build&Push to DockerHub
 ```bash
 docker build -t mafia-bot .
-docker tag mafia-bot g00ida/mafia-bot:latest
+docker tag mafia-bot:latest g00ida/mafia-bot:latest
 docker push g00ida/mafia-bot:latest
 ```
 
 ## Pull
 
 ```bash
+docker pull g00ida/mafia-bot:latest
 cd /opt/mafia
 cat .env | docker run -d \
   --name mafia-bot \
