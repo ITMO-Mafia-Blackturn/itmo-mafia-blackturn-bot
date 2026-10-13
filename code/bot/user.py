@@ -6,6 +6,11 @@ from aiogram.filters import Command, CommandStart, Filter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
+<<<<<<< HEAD
+=======
+from time import perf_counter
+import asyncio
+>>>>>>> origin/hotfix
 
 import bot.keyboards as kb
 from bot.keyboards import CLUB_RATING_BUTTON_DATA, STARS_BUTTON_DATA, MY_ACHIEVMENTS_BUTTON_DATA, \
@@ -127,7 +132,11 @@ async def help_command(message: Message):
     Внимание: форма переехала на яндекс!
     """
 
+<<<<<<< HEAD
     help_message += '\n\nРазработчики:\n🦋 <a href="https://t.me/high_fly_bird">госпожа Фиалка</a>\n🚴‍♂️ <a href="https://t.me/MrAlex18">господин Велосипедостроитель</a>'
+=======
+    help_message += '\n\nРазработчики:\n🦋 <a href="https://t.me/high_fly_bird">госпожа Фиалка</a>\n🚴‍♂️ <a href="https://t.me/MrAlex18">господин Велосипедостроитель</a>\n <a href="https://t.me/n3s0strl">господин Несострел</a>'
+>>>>>>> origin/hotfix
 
     await message.answer(help_message,
                          parse_mode="HTML",
@@ -267,6 +276,10 @@ async def refresh_registered_users(message: Message, state: FSMContext):
 
 @user.message(EventCheck())
 async def btn_event_name_click(message: Message, state: FSMContext, event_name: str = None):
+<<<<<<< HEAD
+=======
+    t = perf_counter()
+>>>>>>> origin/hotfix
     event_info_for_message = '''🎉Название мероприятия: {event_name}
 📆Дата и время проведения: <b>{event_date}</b>
 🎊Описание: {event_desc}
@@ -277,7 +290,11 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
 📁Ваши данные :
 👤Ник: {signup_user_full_name}\n
 '''
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> origin/hotfix
     registered_users_str = "\nСписок зарегистрированных пользователей:\n{registered_users_list}\n"
     grouped_by_level_str = "\n"
     
@@ -290,6 +307,7 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
 
     await state.set_state(EventSignUp.event_name)
     chat_id = message.from_user.id
+<<<<<<< HEAD
     event_info = await get_event_info_by_name(event_name=event_name)
     event_date = event_info.date
     event_desc = event_info.description
@@ -302,20 +320,55 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
     
     # Добавить информацию о статусе проходок
     passes_sent = await check_passes_sent(event_name=event_name)
+=======
+    event_info, is_signup_open, guest_count, passes_sent, registered_users, signup = await asyncio.gather(
+    get_event_info_by_name(event_name=event_name),
+    check_is_signup_open(event_name=event_name),
+    get_guest_count_for_event(event_name=event_name),
+    check_passes_sent(event_name=event_name),
+    get_signup_people(event_name=event_name),
+    check_signup(event_name=event_name, chat_id=chat_id),
+    )
+    # event_info = await get_event_info_by_name(event_name=event_name)
+    event_date = event_info.date
+    event_desc = event_info.description
+    event_limit = event_info.limit
+    # is_signup_open = await check_is_signup_open(event_name=event_name)
+    is_signup_open_str = "открыта" if is_signup_open is not None else "закрыта"
+    event_status = 'unsigned' if is_signup_open is not None else ''
+    # guest_count = await get_guest_count_for_event(event_name=event_name)
+    event_info_for_message += f"👥Гостей: {guest_count}/{event_info.guest_limit}\n"
+    
+    # Добавить информацию о статусе проходок
+    # passes_sent = await check_passes_sent(event_name=event_name)
+>>>>>>> origin/hotfix
     if passes_sent:
         event_info_for_message += "🚫 Запись гостей закрыта (проходки отправлены)\n"
 
     # Get the list of registered users
+<<<<<<< HEAD
     registered_users = await get_signup_people(event_name=event_name)
 
     # Create a string with the list of registered users
     registered_users_list = ""
     print(registered_users)
+=======
+    # registered_users = await get_signup_people(event_name=event_name)
+    
+    # print("EVENT:", repr(event_name))
+    # print("REGISTERED USERS:")
+    # print(registered_users)
+
+    # Create a string with the list of registered users
+    registered_users_list = []
+    # print(registered_users)
+>>>>>>> origin/hotfix
     nicks = registered_users['Полное имя']
     tgs = registered_users['Никнейм']
     levels = registered_users['Уровень']
     colleges = registered_users['вуз']
     is_signup_open_str = "открыта" if len(nicks) < event_limit else "закрыта"
+<<<<<<< HEAD
 
     for i, (nick, level_id, username, college) in enumerate(zip(nicks, levels, tgs, colleges), start=1):
         level_symbol = next(
@@ -340,6 +393,39 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
     print("GROUPED:", repr(grouped_by_level_str))
     
     signup = await check_signup(event_name=event_name, chat_id=chat_id)
+=======
+    level_dict: dict = {level['level_id']: level['level_symbol'] for level in kb.LEVEL_DESCR 
+                        }
+        
+    for i, (nick, level_id, username, college) in enumerate(zip(nicks, levels, tgs, colleges), start=1):
+        level_symbol = level_dict.get(level_id, '')
+
+        registered_users_list.append(f"{i}. {level_symbol} {nick} - @{username} - <i>{college}</i>")
+
+    registered_users_str = '\n'.join(registered_users_list)
+
+
+    # print("LEVEL_DESCR:", kb.LEVEL_DESCR)
+    # print("levels:", levels)
+
+    reg_dict = {
+    level['level_symbol']: 0
+    for level in kb.LEVEL_DESCR
+    if not level.get("hidden", False)
+    }
+
+    for level_id in levels:
+        symbol = level_dict.get(level_id)
+
+        if symbol in reg_dict:
+            reg_dict[symbol] += 1
+
+    grouped_by_level_str = "\n".join(
+        f"{symbol}: 👤{count}"
+        for symbol, count in reg_dict.items()
+    )
+    
+>>>>>>> origin/hotfix
     if signup is None:
         # Пользователь не записан или запись отменена
         await message.answer(
@@ -377,6 +463,10 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
                 parse_mode="HTML",
                 reply_markup=await kb.get_event_menu(rights="user", event_name=event_name)
             )
+<<<<<<< HEAD
+=======
+    print(perf_counter()-t)
+>>>>>>> origin/hotfix
 
 
 @user.message(F.text == "❌Я не приду", EventSignUp.event_name)
@@ -463,7 +553,11 @@ async def btn_signup_click(message: Message, state: FSMContext):
 
             # получим данные пользователя
             user_profile = await get_user_profile(chat_id=message.from_user.id)
+<<<<<<< HEAD
             print(user_profile.__dict__, '\n\n')
+=======
+            # print(user_profile.__dict__, '\n\n')
+>>>>>>> origin/hotfix
             await state.update_data(full_name=user_profile.nickname,
                                     id=message.from_user.id,
                                     level=user_profile.level,

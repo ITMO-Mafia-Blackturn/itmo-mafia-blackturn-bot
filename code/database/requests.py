@@ -3,7 +3,11 @@ from logging import exception
 from typing import Optional
 
 from sqlalchemy import and_
+<<<<<<< HEAD
 from sqlalchemy import select, delete, update, func
+=======
+from sqlalchemy import select, delete, update, func, text
+>>>>>>> origin/hotfix
 
 from config import ADMIN_CHATS_INFO
 from database.models import Admin, BannedUser, UserInMailing, Event, EventSingUp, UserProfile
@@ -283,7 +287,11 @@ async def get_signup_people(*, event_name: str):
             # people["Телефон"] += [user.phone]
             people["вуз"] += ["ИТМО" if user_profile_data.is_itmo else "Гость"]
             people["Айди чата"] += [user.chat_id]
+<<<<<<< HEAD
             people["Уровень"] += [user.level]
+=======
+            people["Уровень"] += [user_profile_data.level]
+>>>>>>> origin/hotfix
             people["Никнейм"] += [user.username]
             # Добавляем уровень
             # telegram_user = await bot.get_chat(user.chat_id)

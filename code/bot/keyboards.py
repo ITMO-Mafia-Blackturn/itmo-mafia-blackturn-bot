@@ -30,6 +30,15 @@ ACHIEVEMENT_CATEGORIES = [{
 
 LEVEL_DESCR = [
     {
+<<<<<<< HEAD
+=======
+            "level_id": 0,
+            "level_symbol": "⚪",
+            "level_name": "o iia io iii ai",
+            "hidden": True
+        },
+    {
+>>>>>>> origin/hotfix
         "level_id": 1,
         "level_symbol": "🟢",
         "level_name": "Новичок",
@@ -41,12 +50,20 @@ LEVEL_DESCR = [
     },
     {
         "level_id": 3,
+<<<<<<< HEAD
         "level_symbol": "🟠",
+=======
+        "level_symbol": "🔵",
+>>>>>>> origin/hotfix
         "level_name": "Уверенная база",
     },
     {
         "level_id": 4,
+<<<<<<< HEAD
         "level_symbol": "🔵",
+=======
+        "level_symbol": "🟠",
+>>>>>>> origin/hotfix
         "level_name": "Опытный, уровень 1"
     },
     {
@@ -67,7 +84,11 @@ async def get_level_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text=f"{level['level_symbol']} {level['level_name']}", callback_data=f"level_{level['level_id']}")]
+<<<<<<< HEAD
         for level in LEVEL_DESCR
+=======
+        for level in LEVEL_DESCR if "hidden" not in level.keys() or not level["hidden"]
+>>>>>>> origin/hotfix
     ])
 
 
@@ -130,7 +151,11 @@ async def get_start_menu(*, rights: str):
     keyboard = ReplyKeyboardBuilder()
     keyboard.add(KeyboardButton(text="🎉Мероприятия"))
     keyboard.add(KeyboardButton(text="📝Редактировать профиль"))
+<<<<<<< HEAD
     keyboard.add(KeyboardButton(text="🌟Достижения и рейтинг"))
+=======
+    # keyboard.add(KeyboardButton(text="🌟Достижения и рейтинг"))
+>>>>>>> origin/hotfix
     if rights == "admin":
         keyboard.add(KeyboardButton(text=f"⚙️Админ панель"))
     else:
