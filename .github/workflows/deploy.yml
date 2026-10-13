@@ -70,6 +70,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           fingerprint: ${{ secrets.VPS_HOST_FINGERPRINT }}
           envs: GHCR_USER,GHCR_TOKEN
+          port: 41830
           script: |
             set -eu
             echo "$GHCR_TOKEN" | docker login ghcr.io \
