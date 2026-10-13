@@ -49,6 +49,17 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
+          echo "Fingerprint length: ${#FP}"
+          if [[ "$FP" == SHA256:* ]]; then
+            echo "Starts with SHA256 prefix: yes"
+          else
+            echo "Starts with SHA256 prefix: no"
+          fi
+          if [[ "$FP" =~ ^SHA256:[A-Za-z0-9+/]+={0,2}$ ]]; then
+            echo "Fingerprint format: valid"
+          else
+            echo "Fingerprint format: unexpected"
+          fi
           if [[ "$VPS_HOST_FINGERPRINT" =~ ^SHA256:[A-Za-z0-9+/]+$ ]]; then
             echo "Fingerprint format looks valid"
           else
