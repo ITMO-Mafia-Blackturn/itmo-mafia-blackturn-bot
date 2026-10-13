@@ -49,6 +49,12 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
+          if [[ "$VPS_HOST_FINGERPRINT" =~ ^SHA256:[A-Za-z0-9+/]+$ ]]; then
+            echo "Fingerprint format looks valid"
+          else
+            echo "::error::Fingerprint is empty or has an unexpected format"
+            exit 1
+          fi
           if [ -z "$VPS_HOST" ]; then
             echo "::error::VPS_HOST is empty or unavailable to this workflow"
             exit 1
