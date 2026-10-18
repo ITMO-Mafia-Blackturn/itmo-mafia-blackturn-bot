@@ -79,6 +79,12 @@ class Achievements(StatesGroup):
 class PairRating(StatesGroup):
     choose = State()
 
+# Состояние изменения профиля
+
+class UpdateProfile(StatesGroup):
+    fields = State()
+    option = State()
+    waiting_for_value = State()
 
 # Обработаем команду айди
 
@@ -129,7 +135,7 @@ async def help_command(message: Message):
     Внимание: форма переехала на яндекс!
     """
 
-    help_message += '\n\nРазработчики:\n🦋 <a href="https://t.me/high_fly_bird">госпожа Фиалка</a>\n🚴‍♂️ <a href="https://t.me/MrAlex18">господин Велосипедостроитель</a>\n <a href="https://t.me/n3s0strl">господин Несострел</a>'
+    help_message += '\n\nРазработчики:\n🦋 <a href="https://t.me/high_fly_bird">госпожа Фиалка</a>\n🚴‍♂️ <a href="https://t.me/MrAlex18">господин Велосипедостроитель</a>\n <a href="https://t.me/n3s0str3l">господин Несострел</a>'
 
     await message.answer(help_message,
                          parse_mode="HTML",
@@ -542,18 +548,178 @@ async def confirm_signup_callback(callback: CallbackQuery, state: FSMContext):
 
 @user.message(F.text == "📝Редактировать профиль")
 async def edit_profile(message: Message, state: FSMContext):
+    
     user_profile = await get_user_profile(chat_id=message.from_user.id)
     message_to_send = ""
     if user_profile:
-        profile_text = f"""Игровой ник: {user_profile.nickname}
+        
+        await state.update_data(
+            chat_id= user_profile.chat_id,
+            polemica_id= user_profile.polemica_id,
+            nickname= user_profile.nickname,
+            is_itmo= user_profile.is_itmo,
+            full_name= user_profile.full_name,
+            level= user_profile.level,
+            passport= user_profile.passport,
+            phone= user_profile.phone,
+            personal_data_agreement= user_profile.personal_data_agreement,
+            username= user_profile.username
+         )
+         
+        profile_text = f"""
+        Игровой ник: {user_profile.nickname}
         Уровень: {kb.get_level_info_by_id(user_profile.level)['level_name']}
-        Из ИТМО: {user_profile.is_itmo}
+        Из ИТМО: {"Да" if user_profile.is_itmo else "Нет"}
         Polemica id: {user_profile.polemica_id}
         """
         message_to_send = f"Ваш профиль:\n{profile_text}\nПриступаем к пересозданию профиля...\n\n"
-    await message.answer(message_to_send + "Введите ваш никнейм:", reply_markup=await kb.get_user_cancel_button())
-    await state.set_state(ProfileEdit.nickname)
+        
+        await message.answer(f"""Вы хотите пересоздать профиль с нуля или изменить что-то конкретное?\n"""
+                             f"""Чтобы отозвать согласие на обработку персональных данных или ВУЗ (ИТМО / не ИТМО), придется пересоздать профиль""",
+                             reply_markup=kb.fields_to_change_keyboard)
+        await state.update_data(message_to_send = message_to_send)
+        await state.set_state(UpdateProfile.fields)
+    else:
+        await message.answer(message_to_send + "Введите ваш никнейм:", reply_markup=kb.get_user_cancel_button)
+        await state.set_state(ProfileEdit.nickname)
 
+@user.callback_query(F.data.startswith("fields_"))
+async def fields_edit(callback: CallbackQuery, state: FSMContext):
+    fields = callback.data.split("_")[1]
+    data = await state.get_data()
+    user_profile = await get_user_profile(chat_id=data.get("chat_id"))
+    message_to_send = ""
+    
+    if user_profile:
+        message_to_send = data.get("message_to_send")
+    
+    if fields == "all":
+        
+        
+        await callback.message.answer(message_to_send + "Введите ваш никнейм:", reply_markup=await kb.get_user_cancel_button())
+        await state.set_state(ProfileEdit.nickname)
+    else:
+        await callback.message.answer(f"""{message_to_send}""" f"""Выберите, что вы хотите изменить:""", reply_markup=kb.change_profile_inline_itmo if data.get("is_itmo") else kb.change_profile_inline_not_itmo)
+        await state.set_state(UpdateProfile.option)
+
+@user.callback_query(F.data.startswith("change_"))
+async def select_field_to_edit(callback: CallbackQuery, state: FSMContext):
+    
+    await callback.answer()
+    
+    field_to_change = callback.data.removeprefix("change_")
+    
+    await state.update_data(field_to_change=field_to_change)
+
+    await state.set_state(UpdateProfile.waiting_for_value)
+    
+    ru_fields = {
+        "nickname": "новый никнейм",
+        "polemica": "новый Polemica ID",
+        "FIO": "ФИО",
+        "passport": "серию и номер паспорта",
+        "telephone_number": "номер телефона"}
+    if field_to_change in ["nickname", "polemica", "FIO", "telephone_number", "passport"]:
+        await callback.message.edit_text(f"Введите {ru_fields.get(field_to_change, 'поля')}:")
+        
+    elif field_to_change == "level":
+            await callback.message.answer(
+                    'Выберите свой уровень. Описание уровней есть в <a href="https://t.me/mafia_itmo/64">посте</a>',
+                    reply_markup=await kb.get_level_keyboard(),
+                    parse_mode="HTML"
+                )
+            await state.set_state(ProfileEdit.level)
+    
+@user.message(UpdateProfile.waiting_for_value)
+async def capture_new_value(message: Message, state: FSMContext):
+    data = await state.get_data()
+    field = data.get("field_to_change")
+    new_value = message.text
+
+    # Получаем актуальный профиль из БД
+    profile = await get_user_profile(chat_id=message.from_user.id)
+
+    if not profile:
+        await message.answer("Профиль не найден. Попробуйте создать его заново.")
+        await state.clear()
+        return
+
+    # Сохраняем прежние значения для всех полей,
+    # кроме того, которое пользователь редактирует
+    nickname = new_value if field == "nickname" else profile.nickname
+    polemica_id = profile.polemica_id
+    full_name = profile.full_name
+    passport = profile.passport
+    phone = profile.phone
+
+    if field == "polemica":
+        polemica_id = int(new_value) if new_value.isdigit() else None
+    elif field == "FIO":
+        full_name = new_value
+    elif field == "passport":
+        passport = new_value
+    elif field == "telephone_number":
+        phone = new_value
+    elif field != "nickname":
+        await message.answer("Неизвестное поле для редактирования.")
+        return
+
+    await save_user_profile(
+        chat_id=profile.chat_id,
+        nickname=nickname,
+        polemica_id=polemica_id,
+        is_itmo=profile.is_itmo,
+        level=profile.level,
+        full_name=full_name,
+        passport=passport,
+        phone=phone,
+        username=profile.username,
+        personal_data_agreement=profile.personal_data_agreement,
+    )
+
+    await update_user_signups_profile(
+        chat_id=profile.chat_id,
+        nickname=nickname,
+        level=profile.level,
+    )
+
+    # Обновляем FSM, чтобы в нём тоже были актуальные значения
+    await state.update_data(
+        nickname=nickname,
+        polemica_id=polemica_id,
+        full_name=full_name,
+        passport=passport,
+        phone=phone,
+        is_itmo=profile.is_itmo,
+        level=profile.level,
+        username=profile.username,
+        personal_data_agreement=profile.personal_data_agreement,
+    )
+    
+    data = await state.get_data()
+
+    profile_info = f"""
+                Игровой ник: <b>{nickname}</b>
+                Уровень: <b>{kb.get_level_info_by_id(data.get('level'))['level_name']}</b>
+                ИТМО: <b>{'Да' if data.get("is_itmo") else 'Нет'}</b>
+                Polemica id: <b>{polemica_id if polemica_id is not None else 'Не указан'}</b>
+                """
+    
+    if not data.get('is_itmo'):
+            profile_info += f"""
+            ФИО: <b>{full_name}</b>
+            Паспорт: <b>{passport}</b>
+            Телефон: <b>{phone}</b>
+    """
+    
+    await message.answer(
+        "Данные успешно обновлены!\n"
+        f"{profile_info}",
+        parse_mode="HTML"
+    )
+    await state.clear()
+        
+    
 
 @user.message(ProfileEdit.nickname)
 async def process_nickname(message: Message, state: FSMContext):

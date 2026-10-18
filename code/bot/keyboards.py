@@ -201,8 +201,39 @@ are_u_from_itmo_keyboard = ReplyKeyboardMarkup(keyboard=[
     resize_keyboard=True
 )
 
+fields_to_change_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text= "Я хочу изменить все", callback_data="fields_all")],
+        [InlineKeyboardButton(text= "Я хочу изменить не все", callback_data="fields_particular")]
+    ]
+)
+
+change_profile_inline_itmo = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Никнейм", callback_data="change_nickname"),
+            InlineKeyboardButton(text="Уровень игры", callback_data="change_level"),
+            InlineKeyboardButton(text="Polemica ID", callback_data="change_polemica_id"),
+        ]
+    ]
+)
+
+change_profile_inline_not_itmo = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Никнейм", callback_data="change_nickname"),
+            InlineKeyboardButton(text="Уровень игры", callback_data="change_level"),
+            InlineKeyboardButton(text="Polemica ID", callback_data="change_polemica")],
+        [   InlineKeyboardButton(text="ФИО", callback_data="change_FIO"),
+            InlineKeyboardButton(text="Паспорт (серия номер)", callback_data="change_passport"),
+            InlineKeyboardButton(text="Номер телефона", callback_data="change_telephone_number")
+            
+        ]
+    ]
+)
 
 async def get_personal_data_agreement_keyboard():
     keyboard = ReplyKeyboardBuilder()
     keyboard.add(KeyboardButton(text="✅Даю согласие"))
     return keyboard.adjust(1).as_markup(resize_keyboard=True)
+

@@ -104,25 +104,25 @@ ___
 ## Build&Push to DockerHub
 ```bash
 docker build -t mafia-bot .
-<<<<<<< HEAD
-docker tag mafia-bot g00ida/mafia-bot:latest
-=======
 docker tag mafia-bot:latest g00ida/mafia-bot:latest
->>>>>>> origin/hotfix
 docker push g00ida/mafia-bot:latest
 ```
 
 ## Pull
 
 ```bash
-<<<<<<< HEAD
-=======
 docker pull g00ida/mafia-bot:latest
->>>>>>> origin/hotfix
-cd /opt/mafia
-cat .env | docker run -d \
   --name mafia-bot \
-  --restart always \
   --env-file /dev/stdin \
   g00ida/mafia-bot:latest
 ```
+
+## Для локального запуска
+
+Чтобы локально запустить проект и обращаться к удаленной БД, создайте в отдельном терминале ssh-туннель к серверу с БД командой
+
+```bash
+ssh -N -p 41830   -L 15432:127.0.0.1:5432   user@ip
+```
+
+Предварительно замените в .env все переменные окружения, связанные с IP на 127.0.0.1, а с портом --- на 15432.
