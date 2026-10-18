@@ -9,6 +9,8 @@ from aiogram.types import Message, CallbackQuery
 from time import perf_counter
 import asyncio
 
+import re
+
 import bot.keyboards as kb
 from bot.keyboards import CLUB_RATING_BUTTON_DATA, STARS_BUTTON_DATA, MY_ACHIEVMENTS_BUTTON_DATA, \
     PAIR_RATING_BUTTON_DATA
@@ -135,7 +137,7 @@ async def help_command(message: Message):
     Внимание: форма переехала на яндекс!
     """
 
-    help_message += '\n\nРазработчики:\n🦋 <a href="https://t.me/high_fly_bird">госпожа Фиалка</a>\n🚴‍♂️ <a href="https://t.me/MrAlex18">господин Велосипедостроитель</a>\n <a href="https://t.me/n3s0str3l">господин Несострел</a>'
+    help_message += '\n\nРазработчики:\n🦋 <a href="https://t.me/high_fly_bird">госпожа Фиалка</a>\n🚴‍♂️ <a href="https://t.me/MrAlex18">господин Велосипедостроитель</a>\n ⚔️<a href="https://t.me/n3s0str3l">господин Несострел</a>'
 
     await message.answer(help_message,
                          parse_mode="HTML",
@@ -587,31 +589,40 @@ async def edit_profile(message: Message, state: FSMContext):
 async def fields_edit(callback: CallbackQuery, state: FSMContext):
     fields = callback.data.split("_")[1]
     data = await state.get_data()
-    user_profile = await get_user_profile(chat_id=data.get("chat_id"))
+    user_profile = await get_user_profile(chat_id=callback.from_user.id)
+    
     message_to_send = ""
     
     if user_profile:
-        message_to_send = data.get("message_to_send")
+        message_to_send = (f"""<b>Ваш профиль</b>\n"""
+                f"""\tИгровой ник: {user_profile.nickname}\n"""
+                f"""\tУровень: {kb.get_level_info_by_id(user_profile.level)['level_name']}\n"""
+                f"""\tИз ИТМО: {"Да" if user_profile.is_itmo else "Нет"}\n"""
+                f"""\tPolemica id: {user_profile.polemica_id}\n\n""")
     
     if fields == "all":
         
         
-        await callback.message.answer(message_to_send + "Введите ваш никнейм:", reply_markup=await kb.get_user_cancel_button())
+        await callback.message.answer(message_to_send + "Введите ваш никнейм:", 
+                                      reply_markup=await kb.get_user_cancel_button(), 
+                                      parse_mode="HTML")
         await state.set_state(ProfileEdit.nickname)
     else:
-        await callback.message.answer(f"""{message_to_send}""" f"""Выберите, что вы хотите изменить:""", reply_markup=kb.change_profile_inline_itmo if data.get("is_itmo") else kb.change_profile_inline_not_itmo)
+        await callback.message.answer(f"""{message_to_send}""" f"""Выберите, что вы хотите изменить:""", 
+                                      reply_markup=kb.change_profile_inline_itmo if user_profile.is_itmo else kb.change_profile_inline_not_itmo,
+                                      parse_mode="HTML")
         await state.set_state(UpdateProfile.option)
+        
+    await callback.answer()
 
 @user.callback_query(F.data.startswith("change_"))
 async def select_field_to_edit(callback: CallbackQuery, state: FSMContext):
-    
-    await callback.answer()
     
     field_to_change = callback.data.removeprefix("change_")
     
     await state.update_data(field_to_change=field_to_change)
 
-    await state.set_state(UpdateProfile.waiting_for_value)
+    
     
     ru_fields = {
         "nickname": "новый никнейм",
@@ -621,6 +632,7 @@ async def select_field_to_edit(callback: CallbackQuery, state: FSMContext):
         "telephone_number": "номер телефона"}
     if field_to_change in ["nickname", "polemica", "FIO", "telephone_number", "passport"]:
         await callback.message.edit_text(f"Введите {ru_fields.get(field_to_change, 'поля')}:")
+        await state.set_state(UpdateProfile.waiting_for_value)
         
     elif field_to_change == "level":
             await callback.message.answer(
@@ -629,6 +641,8 @@ async def select_field_to_edit(callback: CallbackQuery, state: FSMContext):
                     parse_mode="HTML"
                 )
             await state.set_state(ProfileEdit.level)
+    
+    await callback.answer()
     
 @user.message(UpdateProfile.waiting_for_value)
 async def capture_new_value(message: Message, state: FSMContext):
@@ -652,16 +666,85 @@ async def capture_new_value(message: Message, state: FSMContext):
     passport = profile.passport
     phone = profile.phone
 
+    value = (message.text or "").strip()
+
     if field == "polemica":
-        polemica_id = int(new_value) if new_value.isdigit() else None
+        if value == "-":
+            polemica_id = None
+        elif value.isdigit():
+            polemica_id = int(value)
+        else:
+            await message.answer(
+                "Polemica ID должен содержать только цифры. "
+                "Если ID отсутствует, отправьте '-'."
+            )
+            return
+
+        nickname = profile.nickname
+        full_name = profile.full_name
+        passport = profile.passport
+        phone = profile.phone
+
     elif field == "FIO":
-        full_name = new_value
+        if len(value) > 150 or len(value.split()) < 2:
+            await message.answer(
+                "Введите ФИО: минимум имя и фамилию."
+            )
+            return
+
+        if not re.fullmatch(r"[А-Яа-яЁёA-Za-z-]+(?:\s+[А-Яа-яЁёA-Za-z-]+)+", value):
+            await message.answer(
+                "ФИО должно содержать только буквы, пробелы и дефисы. "
+                "Введите имя и фамилию."
+            )
+            return
+
+        nickname = profile.nickname
+        polemica_id = profile.polemica_id
+        full_name = value
+        passport = profile.passport
+        phone = profile.phone
+
     elif field == "passport":
-        passport = new_value
+        if not re.fullmatch(r"\d{10}", value):
+            await message.answer(
+                "Серия и номер паспорта должны состоять ровно из 10 цифр."
+            )
+            return
+
+        nickname = profile.nickname
+        polemica_id = profile.polemica_id
+        full_name = profile.full_name
+        passport = value
+        phone = profile.phone
+
     elif field == "telephone_number":
-        phone = new_value
-    elif field != "nickname":
+        if not re.fullmatch(r"8\d{10}", value):
+            await message.answer(
+                "Введите номер телефона: 11 цифр, начиная с 8."
+            )
+            return
+
+        nickname = profile.nickname
+        polemica_id = profile.polemica_id
+        full_name = profile.full_name
+        passport = profile.passport
+        phone = value
+    elif field == "nickname":
+        if not 2 <= len(value) <= 100:
+            await message.answer(
+                "Никнейм должен содержать от 2 до 100 символов. Попробуйте ещё раз."
+            )
+            return
+
+        nickname = value
+        polemica_id = profile.polemica_id
+        full_name = profile.full_name
+        passport = profile.passport
+        phone = profile.phone
+    else:
         await message.answer("Неизвестное поле для редактирования.")
+        await state.clear()
         return
 
     await save_user_profile(
@@ -717,6 +800,7 @@ async def capture_new_value(message: Message, state: FSMContext):
         f"{profile_info}",
         parse_mode="HTML"
     )
+    print(data.get("is_itmo"))
     await state.clear()
         
     
@@ -758,7 +842,9 @@ async def process_full_name(message: Message, state: FSMContext):
 
 @user.message(ProfileEdit.passport)
 async def process_passport(message: Message, state: FSMContext):
-    if len(message.text) == 10 and message.text.isdigit():
+    ppt = "".join(message.text.split())
+    
+    if len(ppt) == 10 and message.text.isdigit():
         await state.update_data(passport=message.text)
         await message.answer("Пожалуйста, введите ваш номер телефона (11 цифр, начиная с 8). Он нужен для проходки:", reply_markup=await kb.get_user_cancel_button())
         await state.set_state(ProfileEdit.phone)

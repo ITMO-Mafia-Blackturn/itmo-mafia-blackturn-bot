@@ -213,7 +213,7 @@ change_profile_inline_itmo = InlineKeyboardMarkup(
         [
             InlineKeyboardButton(text="Никнейм", callback_data="change_nickname"),
             InlineKeyboardButton(text="Уровень игры", callback_data="change_level"),
-            InlineKeyboardButton(text="Polemica ID", callback_data="change_polemica_id"),
+            InlineKeyboardButton(text="Polemica ID", callback_data="change_polemica"),
         ]
     ]
 )
