@@ -402,7 +402,7 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
                                               is_signup_open_str=is_signup_open_str, event_limit=event_limit) +
                 user_data_str.format(signup_user_full_name=signup_user_full_name) +
                 f"\n🛎Статус : не пойду"
-                f"\n\n{registered_users_str}"
+                f"\n\n{registered_users_str}\n\n"
                 f"\n{grouped_by_level_str}",
                 parse_mode="HTML",
                 reply_markup=await kb.get_event_menu(rights="user", event_name=event_name)

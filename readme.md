@@ -111,7 +111,7 @@ docker push g00ida/mafia-bot:latest
 ## Pull
 
 ```bash
-docker pull g00ida/mafia-bot:latest
+cat .env & docker pull g00ida/mafia-bot:latest
   --name mafia-bot \
   --env-file /dev/stdin \
   g00ida/mafia-bot:latest
