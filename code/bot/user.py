@@ -392,7 +392,7 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
                 event_info_for_message.format(event_name=event_name, event_date=event_date, event_desc=event_desc,
                                               is_signup_open_str=is_signup_open_str, event_limit=event_limit) +
                 "🛎Статус : пойду\n" +
-                registered_users_str + grouped_by_level_str,
+                registered_users_str + "\n\n" + grouped_by_level_str,
                 parse_mode="HTML",
                 reply_markup=await kb.get_event_menu(rights="user", event_status="signed", event_name=event_name)
             )
@@ -582,7 +582,7 @@ async def edit_profile(message: Message, state: FSMContext):
         await state.update_data(message_to_send = message_to_send)
         await state.set_state(UpdateProfile.fields)
     else:
-        await message.answer(message_to_send + "Введите ваш никнейм:", reply_markup=kb.get_user_cancel_button)
+        await message.answer(message_to_send + "Введите ваш никнейм:", reply_markup=await kb.get_user_cancel_button())
         await state.set_state(ProfileEdit.nickname)
 
 @user.callback_query(F.data.startswith("fields_"))
