@@ -280,7 +280,7 @@ async def get_signup_people(*, event_name: str):
         for user in signup_people:
             user_profile_data = await get_user_profile(chat_id=user.chat_id)
             if user_profile_data is not None:
-                people["Полное имя"] += [user_profile_data.full_name]
+                people["Полное имя"] += [user_profile_data.nickname]
                 # people["Телефон"] += [user.phone]
                 people["вуз"] += ["ИТМО" if user_profile_data.is_itmo else "Гость"]
                 people["Айди чата"] += [user.chat_id]
