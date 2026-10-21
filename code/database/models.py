@@ -91,7 +91,7 @@ class UserProfile(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     chat_id: Mapped[int] = mapped_column(BigInteger, unique=True)
     polemica_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
-    nickname: Mapped[str] = mapped_column(String(100))
+    nickname: Mapped[str] = mapped_column(String(3))
     is_itmo: Mapped[bool] = mapped_column(Boolean)
     level: Mapped[int] = mapped_column(Integer)
     full_name: Mapped[str] = mapped_column(String(100), nullable=True)
