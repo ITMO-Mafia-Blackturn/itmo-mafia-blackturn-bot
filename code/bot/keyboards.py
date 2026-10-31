@@ -86,7 +86,7 @@ our_contacts = InlineKeyboardMarkup(inline_keyboard=[
     [InlineKeyboardButton(
         text="Телеграм чат", url="https://t.me/+5imdCNlmHW05Njdi")],
     [InlineKeyboardButton(
-        text="Главный организатор", url="https://t.me/high_fly_bird")],
+        text="Главный организатор", url="https://t.me/MrKroger01")],
 ])
 
 # Кнопки со ссылками на техническую поддержку
@@ -102,7 +102,9 @@ admin_panel = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="🚫Забанить пользователя"), KeyboardButton(
         text="✅Разбанить пользователя")],
     [KeyboardButton(text="➕Добавить админа"), KeyboardButton(
-        text="➖Удалить админа")],
+        text="➖Удалить админа")]
+    [KeyboardButton(text="➕Добавить турнир"), KeyboardButton(
+            text="➖Удалить турнир")],
     [KeyboardButton(text="🗣️Сделать рассылку")],
     [KeyboardButton(text="🤖Назад")],
 ], input_field_placeholder="Выберите пункт меню...", resize_keyboard=True)
@@ -135,6 +137,7 @@ async def get_user_cancel_button(*, addition: str = ""):
 async def get_start_menu(*, rights: str):
     keyboard = ReplyKeyboardBuilder()
     keyboard.add(KeyboardButton(text="🎉Мероприятия"))
+    keyboard.add(KeyboardButton(text="Турниры"))
     keyboard.add(KeyboardButton(text="📝Редактировать профиль"))
     # keyboard.add(KeyboardButton(text="🌟Достижения и рейтинг"))
     if rights == "admin":
@@ -142,6 +145,7 @@ async def get_start_menu(*, rights: str):
     else:
         keyboard.add(KeyboardButton(text="👤Наши контакты"))
     keyboard.add(KeyboardButton(text="💻Тех поддержка"))
+    
     keyboard.add(KeyboardButton(text="/help"))
     return keyboard.adjust(1).as_markup(resize_keyboard=True, input_field_placeholder="Выберите пункт меню...")
 
@@ -237,3 +241,9 @@ async def get_personal_data_agreement_keyboard():
     keyboard.add(KeyboardButton(text="✅Даю согласие"))
     return keyboard.adjust(1).as_markup(resize_keyboard=True)
 
+tournaments_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="Записаться на турнир")],
+        [KeyboardButton(text="Сняться с турнира")]
+    ]
+)

@@ -20,7 +20,7 @@ from database.requests import (check_ban, check_event_by_name, get_users_from_ma
                                del_from_mailing, get_event_info_by_name, get_signup_people,
                                check_is_signup_open, close_signup_to_event, get_count_of_events,
                                remove_event_from_table, get_unremoved_events, get_chat_ids_for_users_in_mailing,
-                               get_guests_for_event, mark_passes_sent, check_passes_sent)
+                               get_guests_for_event, mark_passes_sent, check_passes_sent, get_admins)
 from utils import setup_logger
 
 # Чтобы не писать dispatcher 2-й раз заменим его на роутер
@@ -175,6 +175,18 @@ async def wait_id_to_add_admin(message: Message, state: FSMContext):
 
 @admin.message(AdminProtect(), F.text == "➖Удалить админа")
 async def btn_del_adm_click(message: Message, state: FSMContext):
+    admins_ = await get_admins()
+    
+    admins = admins_.all()
+    admins_list = [f"\t\t\t\t{admin.nickname} --- {admin.chat_id}\n" for admin in admins]
+    
+    await message.answer(
+        f"""Список администраторов:
+
+{''.join(admins_list)}
+        
+        """
+    )
     await message.answer("Отправьте айди пользователя...", reply_markup=kb.admin_cancel_markup)
     await state.set_state(DelAdmin.id)
 

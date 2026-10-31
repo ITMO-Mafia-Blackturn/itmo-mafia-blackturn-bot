@@ -124,6 +124,9 @@ async def check_admin(*, chat_id: int):
         else:
             return await session.scalar(select(Admin).where(Admin.chat_id == chat_id))
 
+async def get_admins():
+    async with async_session() as session:
+        return await session.scalars(select(UserProfile).where(UserProfile.chat_id.in_(select(Admin.chat_id))))
 
 async def add_event_to_table(*, event_name: str, event_description: str,
                              event_date: datetime, is_signup_open: int = 1,

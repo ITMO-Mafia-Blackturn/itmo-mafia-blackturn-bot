@@ -379,7 +379,7 @@ async def btn_event_name_click(message: Message, state: FSMContext, event_name: 
                 event_desc=event_desc,
                 is_signup_open_str=is_signup_open_str,
                 event_limit=event_limit
-            ) + registered_users_str + grouped_by_level_str,
+            ) + registered_users_str + "\n\n" + grouped_by_level_str,
             parse_mode="HTML",
             reply_markup=await kb.get_event_menu(rights="user", event_status="unsigned", event_name=event_name)
         )
@@ -731,9 +731,9 @@ async def capture_new_value(message: Message, state: FSMContext):
         passport = profile.passport
         phone = value
     elif field == "nickname":
-        if not 2 <= len(value) <= 100:
+        if not 2 <= len(value) <= 3:
             await message.answer(
-                "Никнейм должен содержать от 2 до 100 символов. Попробуйте ещё раз."
+                "Никнейм должен содержать от 2 до 3 символов. Попробуйте ещё раз."
             )
             return
 
@@ -807,9 +807,15 @@ async def capture_new_value(message: Message, state: FSMContext):
 
 @user.message(ProfileEdit.nickname)
 async def process_nickname(message: Message, state: FSMContext):
-    await state.update_data(nickname=message.text)
-    await message.answer("Вы из ИТМО?", reply_markup=kb.are_u_from_itmo_keyboard)
-    await state.set_state(ProfileEdit.is_itmo)
+    nickname = message.text.trim()
+    
+    if 2<=len(nickname)<=3:
+        await state.update_data(nickname=message.text)
+        await message.answer("Вы из ИТМО?", reply_markup=kb.are_u_from_itmo_keyboard)
+        await state.set_state(ProfileEdit.is_itmo)
+    else: 
+        await message.answer("Я конечно понимаю, буквы бесплатные, но длина не должна превышать 3 символов и должна быть больше 1")
+        return
 
 
 @user.message(ProfileEdit.is_itmo)
@@ -875,7 +881,8 @@ async def process_personal_data_agreement(message: Message, state: FSMContext):
         )
         await state.set_state(ProfileEdit.polemica_id)
     else:
-        await message.answer("Для продолжения необходимо дать согласие на обработку персональных данных.")
+        await message.answer("Для продолжения необходимо дать согласие на обработку персональных данных. Пожалуйста, начните заново")
+        return
 
 
 @user.message(ProfileEdit.polemica_id)

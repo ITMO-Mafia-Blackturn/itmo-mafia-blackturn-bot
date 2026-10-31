@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Optional, Union
 
-from sqlalchemy import Boolean
+from sqlalchemy import Boolean, DateTime, LargeBinary
 from sqlalchemy import String, Integer, ForeignKey, TIMESTAMP, BigInteger
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -100,6 +101,32 @@ class UserProfile(Base):
     personal_data_agreement: Mapped[bool] = mapped_column(Boolean, default=False)
     username: Mapped[str] = mapped_column(String(100), nullable=True)
 
+
+class Tournaments(Base):
+    __tablename__ = "tournaments"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    description: Mapped[str] = mapped_column(String(700), nullable= False)
+    place: Mapped[str] = mapped_column(String(150), nullable = False)
+    date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable = False)
+    expired: Mapped[bool] = mapped_column(Boolean, nullable = False)
+    registry_deadline: Mapped[datetime] = mapped_column(DateTime)
+    capacity: Mapped[int] = mapped_column(int, nullable = False)
+
+class TournamentPlayers(Base):
+    __tablename__ = "tournament_players"
+    
+    id: Mapped[int] = mapped_column(primary_key = True)
+    user_profile_id: Mapped[int] = mapped_column(ForeignKey(UserProfile.id))
+    photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable= True)
+
+class PlayerTournamentRegistries(Base):
+    __tablename__ = "tournament_registries"
+    
+    id: Mapped[int] = mapped_column(primary_key = True)
+    tournament_player_id: Mapped[int] = mapped_column(ForeignKey(TournamentPlayers.id))
+    tournament: Mapped[bool] = mapped_column(Boolean, default = False)
+    approved: Mapped[bool] = mapped_column(Boolean, default = False)
 
 # При запуске главного файла создаём таблицы
 
