@@ -92,10 +92,6 @@ ___
 * [pandas](https://pandas.pydata.org/)
 * [re](https://docs.python.org/3/library/re.html)
 * [os](https://docs.python.org/3/library/os.html)
-___
-## Авторы
-* [@parap3t](https://github.com/parap3t)
-* [@cenittteee](https://github.com/cenittteee)
 
 ___
 
