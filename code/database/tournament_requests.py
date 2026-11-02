@@ -20,4 +20,4 @@ async def get_tournaments():
 async def get_active_tournaments():
     with async_session() as session:
         return session.scalars(select(Tournaments).where((Tournaments.expired == False)))
-    
+

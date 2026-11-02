@@ -102,7 +102,7 @@ class UserProfile(Base):
     username: Mapped[str] = mapped_column(String(100), nullable=True)
 
 
-class Tournaments(Base):
+class Tournament(Base):
     __tablename__ = "tournaments"
     
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -112,19 +112,28 @@ class Tournaments(Base):
     expired: Mapped[bool] = mapped_column(Boolean, nullable = False)
     registry_deadline: Mapped[datetime] = mapped_column(DateTime)
     capacity: Mapped[int] = mapped_column(int, nullable = False)
+    
+    def is_registration_open(self) -> bool:
+        return (
+            not self.expired
+            and datetime.now() <= self.expired
+        )
+    
+    def is_full(self, registered_users_count: int) -> bool:
+        return registered_users_count >= self.capacity
 
-class TournamentPlayers(Base):
+class TournamentPlayer(Base):
     __tablename__ = "tournament_players"
     
     id: Mapped[int] = mapped_column(primary_key = True)
     user_profile_id: Mapped[int] = mapped_column(ForeignKey(UserProfile.id))
     photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable= True)
 
-class PlayerTournamentRegistries(Base):
+class PlayerTournamentRegistrie(Base):
     __tablename__ = "tournament_registries"
     
     id: Mapped[int] = mapped_column(primary_key = True)
-    tournament_player_id: Mapped[int] = mapped_column(ForeignKey(TournamentPlayers.id))
+    tournament_player_id: Mapped[int] = mapped_column(ForeignKey(TournamentPlayer.id))
     tournament: Mapped[bool] = mapped_column(Boolean, default = False)
     approved: Mapped[bool] = mapped_column(Boolean, default = False)
 
