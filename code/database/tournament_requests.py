@@ -1,23 +1,17 @@
-from datetime import datetime
-from logging import exception
-from typing import Optional
+from sqlalchemy import select
 
-from sqlalchemy import and_
-from sqlalchemy import select, delete, update, func, text
+from database.models import Tournament, async_session
 
-from config import ADMIN_CHATS_INFO
-from database.models import Admin, BannedUser, UserInMailing, Event, EventSingUp, UserProfile,\
-                            Tournaments, TournamentPlayers, PlayerTournamentRegistries
-from database.models import async_session
-from utils import setup_logger
 
-logger = setup_logger()
+async def get_tournaments() -> list[Tournament]:
+    async with async_session() as session:
+        result = await session.scalars(select(Tournament))
+        return list(result.all())
 
-async def get_tournaments():
-    with async_session() as session:
-        return session.scalars(select(Tournaments))
 
-async def get_active_tournaments():
-    with async_session() as session:
-        return session.scalars(select(Tournaments).where((Tournaments.expired == False)))
-
+async def get_active_tournaments() -> list[Tournament]:
+    async with async_session() as session:
+        result = await session.scalars(
+            select(Tournament).where(Tournament.expired.is_(False))
+        )
+        return list(result.all())

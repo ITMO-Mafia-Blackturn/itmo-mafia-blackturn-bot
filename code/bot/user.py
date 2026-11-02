@@ -146,7 +146,7 @@ async def help_command(message: Message):
 
 @user.message(F.text == "🚫Отмена")
 async def btn_cancel_click(message: Message, state: FSMContext):
-    await state.set_state(EventSignUp.event_name)
+    await state.clear()
     await message.answer("Отменяю действие", reply_markup=await kb.get_start_menu(rights="user"))
 
 
@@ -807,10 +807,10 @@ async def capture_new_value(message: Message, state: FSMContext):
 
 @user.message(ProfileEdit.nickname)
 async def process_nickname(message: Message, state: FSMContext):
-    nickname = message.text.trim()
+    nickname = message.text.strip()
     
     if 2<=len(nickname)<=3:
-        await state.update_data(nickname=message.text)
+        await state.update_data(nickname=nickname)
         await message.answer("Вы из ИТМО?", reply_markup=kb.are_u_from_itmo_keyboard)
         await state.set_state(ProfileEdit.is_itmo)
     else: 
@@ -935,6 +935,14 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
             nickname=nickname,
             level=level_data['level_id']
         )
+
+        if data.get("tournament_registration_flow"):
+            from bot.tournament_user import continue_tournament_setup
+
+            await state.update_data(tournament_registration_flow=False)
+            await callback.answer()
+            await continue_tournament_setup(callback.message, state, polemica_id)
+            return
         
         profile_info = f"""
             Игровой ник: <b>{nickname}</b>

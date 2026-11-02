@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, Union
 
 from sqlalchemy import Boolean, DateTime, LargeBinary
 from sqlalchemy import String, Integer, ForeignKey, TIMESTAMP, BigInteger
@@ -111,12 +110,12 @@ class Tournament(Base):
     date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable = False)
     expired: Mapped[bool] = mapped_column(Boolean, nullable = False)
     registry_deadline: Mapped[datetime] = mapped_column(DateTime)
-    capacity: Mapped[int] = mapped_column(int, nullable = False)
+    capacity: Mapped[int] = mapped_column(Integer, nullable=False)
     
     def is_registration_open(self) -> bool:
         return (
             not self.expired
-            and datetime.now() <= self.expired
+            and datetime.now() <= self.registry_deadline
         )
     
     def is_full(self, registered_users_count: int) -> bool:
@@ -127,15 +126,21 @@ class TournamentPlayer(Base):
     
     id: Mapped[int] = mapped_column(primary_key = True)
     user_profile_id: Mapped[int] = mapped_column(ForeignKey(UserProfile.id))
+    polemica_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    polemica_nickname: Mapped[str | None] = mapped_column(String(100), nullable=True)
     photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable= True)
 
-class PlayerTournamentRegistrie(Base):
+class PlayerTournamentRegistration(Base):
     __tablename__ = "tournament_registries"
     
     id: Mapped[int] = mapped_column(primary_key = True)
     tournament_player_id: Mapped[int] = mapped_column(ForeignKey(TournamentPlayer.id))
-    tournament: Mapped[bool] = mapped_column(Boolean, default = False)
+    tournament_id: Mapped[int | None] = mapped_column(
+        ForeignKey(Tournament.id), nullable=True
+    )
     approved: Mapped[bool] = mapped_column(Boolean, default = False)
+    rejected: Mapped[bool] = mapped_column(Boolean, default=False)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
 # При запуске главного файла создаём таблицы
 

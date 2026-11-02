@@ -1,4 +1,9 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from database.requests import get_unremoved_events
@@ -102,9 +107,10 @@ admin_panel = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="🚫Забанить пользователя"), KeyboardButton(
         text="✅Разбанить пользователя")],
     [KeyboardButton(text="➕Добавить админа"), KeyboardButton(
-        text="➖Удалить админа")]
+        text="➖Удалить админа")],
     [KeyboardButton(text="➕Добавить турнир"), KeyboardButton(
             text="➖Удалить турнир")],
+    [KeyboardButton(text="🏆Турниры")],
     [KeyboardButton(text="🗣️Сделать рассылку")],
     [KeyboardButton(text="🤖Назад")],
 ], input_field_placeholder="Выберите пункт меню...", resize_keyboard=True)
@@ -247,3 +253,131 @@ tournaments_menu = ReplyKeyboardMarkup(
         [KeyboardButton(text="Сняться с турнира")]
     ]
 )
+
+
+def get_polemica_profile_choice_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Использовать ID профиля", callback_data="tournament:use_profile_id")],
+            [InlineKeyboardButton(text="Ввести другой ID", callback_data="tournament:enter_id")],
+        ]
+    )
+
+
+def get_tournament_selection_keyboard(tournaments) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"🏆 {tournament.date:%d.%m.%Y} — {tournament.place[:35]}",
+                    callback_data=f"tournament:select:{tournament.id}",
+                )
+            ]
+            for tournament in tournaments
+        ]
+    )
+
+
+def get_tournament_actions_keyboard(
+    tournament_id: int, *, registered: bool, can_register: bool
+) -> InlineKeyboardMarkup:
+    buttons = []
+    if registered:
+        buttons.append(
+            [InlineKeyboardButton(text="Сняться с турнира", callback_data=f"tournament:withdraw:{tournament_id}")]
+        )
+    elif can_register:
+        buttons.append(
+            [InlineKeyboardButton(text="Записаться", callback_data=f"tournament:apply:{tournament_id}")]
+        )
+    buttons.append(
+        [InlineKeyboardButton(text="К списку турниров", callback_data="tournament:list")]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_withdraw_confirmation_keyboard(tournament_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Да, сняться",
+                    callback_data=f"tournament:withdraw_confirm:{tournament_id}",
+                ),
+                InlineKeyboardButton(
+                    text="Нет",
+                    callback_data=f"tournament:select:{tournament_id}",
+                ),
+            ]
+        ]
+    )
+
+
+def get_admin_tournament_keyboard(tournaments) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"🏆 {tournament.date:%d.%m.%Y} — {tournament.place[:35]}",
+                    callback_data=f"tournament_admin:select:{tournament.id}",
+                )
+            ]
+            for tournament in tournaments
+        ]
+    )
+
+
+def get_admin_tournament_actions_keyboard(tournament_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Записи",
+                    callback_data=f"tournament_admin:registrations:{tournament_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="Подтверждение записей",
+                    callback_data=f"tournament_admin:review:{tournament_id}",
+                )
+            ],
+        ]
+    )
+
+
+def get_registration_review_keyboard(
+    registration_id: int, *, previous: bool, following: bool
+) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="⬅️ Предыдущая",
+                    callback_data=(
+                        "tournament_admin:previous"
+                        if previous
+                        else "tournament_admin:noop"
+                    ),
+                ),
+                InlineKeyboardButton(
+                    text="➡️ Следующая",
+                    callback_data=(
+                        "tournament_admin:next"
+                        if following
+                        else "tournament_admin:noop"
+                    ),
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✅ Подтвердить",
+                    callback_data=f"tournament_admin:approve:{registration_id}",
+                ),
+                InlineKeyboardButton(
+                    text="❌ Отклонить",
+                    callback_data=f"tournament_admin:reject:{registration_id}",
+                ),
+            ],
+        ]
+    )

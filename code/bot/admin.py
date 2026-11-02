@@ -1,23 +1,21 @@
 import os
-import time
+import asyncio
 from datetime import datetime
 from re import search, compile
-from aiogram.client.session.aiohttp import AiohttpSession
 
 import pandas as pd
 import httpx
-from aiogram import Router, F, Bot
+from aiogram import Router, F
 from aiogram.filters import CommandStart, Filter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, FSInputFile
 
 import bot.keyboards as kb
-from config import BOT_API
-from database.requests import (check_ban, check_event_by_name, get_users_from_mailing, check_admin, add_in_ban,
+from database.requests import (check_ban, check_event_by_name, check_admin, add_in_ban,
                                del_from_ban, add_in_admin, del_from_admin, add_event_to_table, check_event_by_id,
                                get_event_name_by_id, get_count_of_signup,
-                               del_from_mailing, get_event_info_by_name, get_signup_people,
+                               get_event_info_by_name, get_signup_people,
                                check_is_signup_open, close_signup_to_event, get_count_of_events,
                                remove_event_from_table, get_unremoved_events, get_chat_ids_for_users_in_mailing,
                                get_guests_for_event, mark_passes_sent, check_passes_sent, get_admins)
@@ -260,9 +258,9 @@ async def confirm_mailing_callback(callback: CallbackQuery, state: FSMContext):
         users = await get_chat_ids_for_users_in_mailing(event_id=send_for_event_id)
         for user in users:
             try:
-                await BOT.send_message(chat_id=user, text=message_from_admin)
-            except:
-                logger.error(f"Не удалось отправить сообщение пользователю {user}")
+                await callback.bot.send_message(chat_id=user, text=message_from_admin)
+            except Exception as e:
+                logger.error(f"Не удалось отправить сообщение пользователю {user}: {e}")
         await callback.message.answer("Рассылка завершена!", reply_markup=kb.admin_panel)
         await state.clear()
     else:
@@ -532,11 +530,13 @@ async def btn_send_passes_click(message: Message, state: FSMContext):
                     "https://api.forms.yandex.net/v1/surveys/66f6cb8773cee77dbdffbd87/form?dry_run=false",
                     json=payload
                 )
-                logger.info(payload)
                 if response.status_code == 200:
                     successful_sends += 1
                     try:
-                        await BOT.send_message(chat_id=guest.chat_id, text=f"Вам оформлена проходка на мероприятие {event_name}")
+                        await message.bot.send_message(
+                            chat_id=guest.chat_id,
+                            text=f"Вам оформлена проходка на мероприятие {event_name}",
+                        )
                     except Exception as e:
                         logger.error(f"Не удалось отправить уведомление пользователю {guest.chat_id}: {e}")
                 else:
@@ -546,11 +546,11 @@ async def btn_send_passes_click(message: Message, state: FSMContext):
             except httpx.RequestError as e:
                 failed_sends += 1
                 logger.error(f"Error sending request for {guest.full_name}: {e}")
-            time.sleep(5)
+            await asyncio.sleep(5)
 
-    # После успешной отправки отметить проходки как отправленные
-    await mark_passes_sent(event_name=event_name)
+    if failed_sends == 0:
+        await mark_passes_sent(event_name=event_name)
     
     await message.answer(
         f"Отправка проходок завершена.\nУспешно: {successful_sends}\nНеудачно: {failed_sends}\n"
-        f"⚠️ Запись новых гостей на мероприятие заблокирована.")
+        f"{'⚠️ Запись новых гостей на мероприятие заблокирована.' if failed_sends == 0 else 'Проверьте ошибки и повторите отправку.'}")
