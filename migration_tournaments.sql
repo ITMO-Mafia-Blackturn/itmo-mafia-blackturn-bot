@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS tournaments (
     id SERIAL PRIMARY KEY,
+    name VARCHAR(700) NOT NULL,
     description VARCHAR(700) NOT NULL,
     place VARCHAR(150) NOT NULL,
     date TIMESTAMP NOT NULL,

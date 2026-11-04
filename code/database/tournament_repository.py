@@ -12,6 +12,7 @@ class TournamentRepository:
         self.session = session
 
     ALLOWED_FIELDS = {
+        "name",
         "description",
         "place",
         "date",

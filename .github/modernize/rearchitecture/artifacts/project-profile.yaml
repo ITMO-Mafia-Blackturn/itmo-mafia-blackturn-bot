@@ -1,0 +1,46 @@
+project:
+  scope_path: "."
+  loc: 5027
+  languages: [Python]
+  git: true
+  structure:
+    code: "Python application source"
+    code/bot: "Telegram bot handlers and FSM"
+    code/database: "Persistence models and repositories"
+    code/services: "Application services"
+    code/plugins: "Bot plugins"
+  notes: "Python Telegram bot for managing Mafia/ITMO tournaments; existing in-progress tournament name/description work must be preserved."
+
+assessment:
+  change_type: upgrade
+  rationale: |
+    This is an in-place, same-stack brownfield enhancement: restructure large Python modules
+    along responsibility boundaries and add admin tournament editing with registration-aware
+    capacity validation, without changing the runtime or application stack.
+  transformations:
+    - fromStack: Python Telegram bot
+      fromStackVersion: null
+      toStack: Python Telegram bot
+      toStackVersion: null
+  grouping_needed: false
+  deep_planning: undecided
+
+progress_sync:
+  run_id: d1d5b486-d237-4a56-9bdd-82e57ca167b1
+  grouping_mode: none
+  execution_mode: all-at-once
+  plan_start_time: 2026-11-04T20:46:47Z
+  plan_completed_time: 2026-11-04T20:52:00Z
+  execution_start_time: 2026-11-04T20:52:00Z
+  execution_completed_time: null
+  validation_start_time: null
+  validation_completed_time: null
+  total_phases: 4
+  completed_phases: 0
+  total_modules: 5
+  completed_modules: 0
+  total_tasks: 4
+  completed_tasks: 0
+  total_commits: null
+  build_verified: false
+  test_verified: false

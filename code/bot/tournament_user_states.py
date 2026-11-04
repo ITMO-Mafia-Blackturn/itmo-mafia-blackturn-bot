@@ -8,6 +8,7 @@ class TournamentUserState(StatesGroup):
 
 class TournamentAdminState(StatesGroup):
     rejection_reason = State()
+    create_name = State()
     create_description = State()
     create_place = State()
     create_date = State()

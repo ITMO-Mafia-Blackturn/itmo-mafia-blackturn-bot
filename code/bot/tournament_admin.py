@@ -60,6 +60,7 @@ def _missing_photo_png() -> bytes:
 
 
 class TournamentCreationData(TypedDict):
+    name: str
     description: str
     place: str
     date: datetime
@@ -79,7 +80,8 @@ async def _is_admin_message(message: Message) -> bool:
 def _tournament_creation_data_text(data: TournamentCreationData) -> str:
     return (
         "<b>Проверьте данные турнира</b>\n"
-        f"Название: {escape(data['description'])}\n"
+        f"Название: {escape(data['name'])}\n"
+        f"Описание: {escape(data['description'])}\n"
         f"Место: {escape(data['place'])}\n"
         f"Дата: {data['date']:%d.%m.%Y %H:%M}\n"
         f"Дедлайн регистрации: "
@@ -335,10 +337,30 @@ async def start_tournament_creation(message: Message, state: FSMContext) -> None
         return
 
     await state.clear()
-    await state.set_state(TournamentAdminState.create_description)
+    await state.set_state(TournamentAdminState.create_name)
     await _ask_tournament_creation_field(
         message,
-        "Введите название или описание турнира (до 700 символов).",
+        "Введите название турнира (до 700 символов).",
+    )
+
+
+@tournament_admin.message(TournamentAdminState.create_name)
+async def receive_tournament_name(
+    message: Message, state: FSMContext
+) -> None:
+    if not await _is_admin(message.from_user.id):
+        await message.answer("Нет доступа.")
+        await state.clear()
+        return
+    name = (message.text or "").strip()
+    if not name or len(name) > 700:
+        await message.answer("Введите название длиной от 1 до 700 символов.")
+        return
+
+    await state.update_data(name=name)
+    await state.set_state(TournamentAdminState.create_description)
+    await _ask_tournament_creation_field(
+        message, "Введите описание турнира (от 1 до 700 символов)."
     )
 
 
@@ -352,7 +374,7 @@ async def receive_tournament_description(
         return
     description = (message.text or "").strip()
     if not description or len(description) > 700:
-        await message.answer("Введите текст длиной от 1 до 700 символов.")
+        await message.answer("Введите описание длиной от 1 до 700 символов.")
         return
 
     await state.update_data(description=description)
@@ -531,6 +553,7 @@ async def handle_tournament_admin_callback(
             return
         await callback.message.edit_text(
             "<b>Архивировать турнир?</b>\n"
+            f"<b>{escape(tournament.name)}</b>\n"
             f"{escape(tournament.description)}\n"
             f"Дата: {tournament.date:%d.%m.%Y %H:%M}\n"
             f"Место: {escape(tournament.place)}\n\n"
@@ -565,6 +588,7 @@ async def handle_tournament_admin_callback(
         data = await state.get_data()
         try:
             tournament_id = await create_tournament(
+                name=data["name"],
                 description=data["description"],
                 place=data["place"],
                 date=data["date"],
@@ -596,7 +620,8 @@ async def handle_tournament_admin_callback(
         await state.update_data(tournament_admin_id=tournament_id)
         guest_count = await count_active_guest_registrations(tournament_id)
         await callback.message.edit_text(
-            f"<b>{escape(tournament.description)}</b>\n"
+            f"<b>{escape(tournament.name)}</b>\n"
+            f"{escape(tournament.description)}\n"
             f"Дата: {tournament.date:%d.%m.%Y %H:%M}\n"
             f"Место: {escape(tournament.place)}\n"
             f"Гости: {guest_count}/{tournament.guest_capacity} "
@@ -620,7 +645,7 @@ async def handle_tournament_admin_callback(
         if not registrations:
             await callback.message.answer("На этот турнир пока никто не записался.")
         else:
-            for text in _registration_list_text(tournament.description, registrations):
+            for text in _registration_list_text(tournament.name, registrations):
                 await callback.message.answer(text, parse_mode="HTML")
         await callback.answer()
         return
@@ -728,7 +753,7 @@ async def handle_tournament_admin_callback(
                                 chat_id=guest.chat_id,
                                 text=(
                                     "Вам оформлена проходка на турнир "
-                                    f"{tournament.description}"
+                                    f"{tournament.name}"
                                 ),
                             )
                         except TelegramAPIError:

@@ -10,7 +10,7 @@ COPY ./code ./code
 COPY ./migration_add_passes_sent.sql ./migration_add_passes_sent.sql
 COPY ./migration_tournament_passes_sent.sql ./migration_tournament_passes_sent.sql
 COPY ./migration_tournaments.sql ./migration_tournaments.sql
-COPY ./migration_tournaments_guests_capacity.sql ./migration_tournaments_guests_capacity.sql
+COPY ./migration_tournament_guest_capacity.sql ./migration_tournament_guest_capacity.sql
 
 EXPOSE 12345
 

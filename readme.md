@@ -156,6 +156,10 @@ psql \
 Для уже существующих турниров она установит лимит в 10% от общей вместимости
 (с округлением вверх). Для новых турниров лимит задаётся при создании.
 
+Чтобы отделить имя турнира от его описания, примените
+`migration_tournament_name_description.sql`. Старые значения `description`
+будут сохранены как `name`, а новое поле `description` будет добавлено пустым.
+
 ## Запуск через Docker Compose
 
 Нужны Docker Engine и Docker Compose. Создайте `.env` в корне репозитория
@@ -185,6 +189,9 @@ docker compose exec -T db sh -c \
 docker compose exec -T db sh -c \
   'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
   < migration_tournament_guest_capacity.sql
+docker compose exec -T db sh -c \
+  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < migration_tournament_name_description.sql
 docker compose up -d bot
 ```
 
@@ -201,7 +208,7 @@ docker compose down
 ## Создание турниров
 
 Администратор может создать турнир через панель бота: нажмите
-`⚙️Админ панель` → `➕Добавить турнир`, затем отправьте название/описание,
+`⚙️Админ панель` → `➕Добавить турнир`, затем отдельно отправьте название и описание,
 место проведения, дату турнира, дедлайн регистрации, общую вместимость
 и вместимость для гостей не из ИТМО. Даты вводятся в формате `ДД.ММ.ГГГГ ЧЧ:ММ`.
 Перед сохранением бот покажет сводку —
@@ -232,6 +239,7 @@ docker compose down
 - `migration_add_passes_sent.sql` — миграция статуса отправки проходок.
 - `migration_tournament_passes_sent.sql` — статус отправки проходок турнира.
 - `migration_tournament_guest_capacity.sql` — лимит гостей турнира.
+- `migration_tournament_name_description.sql` — разделение названия и описания турнира.
 
 ## Безопасность конфигурации
 

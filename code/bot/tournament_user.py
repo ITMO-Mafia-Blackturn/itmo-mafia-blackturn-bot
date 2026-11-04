@@ -259,12 +259,21 @@ async def show_tournament_details(
     )
     can_guest_register = profile.is_itmo or active_guest_count < tournament.guest_capacity
     details = (
-        f"<b>{escape(tournament.description)}</b>\n"
+        f"<b>{escape(tournament.name)}</b>\n",
+        f"\n",
+        f"{escape(tournament.description)}\n"
+        f"\n",
+        f"\n",
         f"Дата: {tournament.date:%d.%m.%Y %H:%M}\n"
         f"Место: {escape(tournament.place)}\n"
+        f"\n",
         f"Регистрация до: {tournament.registry_deadline:%d.%m.%Y %H:%M}\n"
+        f"\n",
         f"Гости: {active_guest_count}/{tournament.guest_capacity}\n"
+        f"\n",
         f"{_confirmed_roster_text(confirmed_players)}\n"
+        f"\n",
+        f"\n",
         f"Статус вашей заявки: {escape(registration_status(registration))}"
     )
     if registration and registration.rejected and registration.rejection_reason:

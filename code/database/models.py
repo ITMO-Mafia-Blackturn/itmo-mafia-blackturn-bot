@@ -110,7 +110,8 @@ class Tournament(Base):
     __tablename__ = "tournaments"
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    description: Mapped[str] = mapped_column(String(700), nullable= False)
+    name: Mapped[str] = mapped_column(String(700), nullable=False)
+    description: Mapped[str] = mapped_column(String(700), nullable=False)
     place: Mapped[str] = mapped_column(String(150), nullable = False)
     date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable = False)
     expired: Mapped[bool] = mapped_column(Boolean, nullable = False)

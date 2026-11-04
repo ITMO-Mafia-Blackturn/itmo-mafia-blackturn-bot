@@ -54,6 +54,7 @@ def registration_status(
 
 async def create_tournament(
     *,
+    name: str,
     description: str,
     place: str,
     date: datetime,
@@ -61,8 +62,10 @@ async def create_tournament(
     capacity: int,
     guest_capacity: int,
 ) -> int:
-    if not description.strip() or len(description) > 700:
+    if not name.strip() or len(name) > 700:
         raise ValueError("Название турнира должно содержать от 1 до 700 символов.")
+    if not description.strip() or len(description) > 700:
+        raise ValueError("Описание турнира должно содержать от 1 до 700 символов.")
     if not place.strip() or len(place) > 150:
         raise ValueError("Место проведения должно содержать от 1 до 150 символов.")
     if registry_deadline > date:
@@ -77,6 +80,7 @@ async def create_tournament(
         )
 
     tournament = Tournament(
+        name=name,
         description=description,
         place=place,
         date=date,
