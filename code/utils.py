@@ -1,4 +1,6 @@
 import logging
+from pathlib import Path
+
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -8,15 +10,27 @@ logging.basicConfig(level=logging.INFO,
 
 def setup_logger(level=logging.INFO,
                  log_file="log.log"):
-    print(f"Logging to {log_file}")
     logger = logging.getLogger()
     logger.setLevel(level)
-    fh = logging.FileHandler(log_file)
-    fh.setLevel(level)
-    logger.addHandler(fh)
-    format = '%(asctime)s - %(levelname)s - %(message)s'
-    formatter = logging.Formatter(format)
-    fh.setFormatter(formatter)
+    log_path = Path(log_file).resolve()
+    file_handler = next(
+        (
+            handler
+            for handler in logger.handlers
+            if isinstance(handler, logging.FileHandler)
+            and Path(handler.baseFilename) == log_path
+        ),
+        None,
+    )
+    if file_handler is None:
+        file_handler = logging.FileHandler(log_path)
+        logger.addHandler(file_handler)
+
+    file_handler.setLevel(level)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s"
+    )
+    file_handler.setFormatter(formatter)
     return logger
 
 

@@ -1,103 +1,250 @@
-# Telegram bot Progressor
+# Mafia ITMO Event Manager Bot
 
-## Описание
-**Телеграм бот Progressor** - бот, 
-который позволяет пользователям быстро и удобно записываться на различные 
-мероприятия. Бот предоставляет возможность выбора и записи на мероприятия, а 
-также информацию о месте проведения и информацию о предстоящем событии. 
-Кроме того, бот может отправлять напоминания о предстоящих мероприятиях. 
+Telegram-бот для записи на мероприятия и турниры клуба Mafia ITMO.
+Бот хранит профили и регистрации в PostgreSQL, позволяет администраторам
+управлять мероприятиями, а также рассматривать заявки на турниры.
 
-## Используемые технологии:
+## Возможности
 
-* `Python 3.12`  
-* `sqlalchemy`
-* `xlsxwriter`   
-* `aiosqlite`   
-* `openpyxl`
-* `aiogram`  
-* `asyncio`
-* `pandas`   
-* `re`
-* `os`
-___
+### Пользователям
 
-## Функционал бота
-* [Пользователь](https://disk.yandex.ru/i/0d4Ewud2nw5xkw)
-* [Админ](https://disk.yandex.ru/i/9dAWvtFI-34tHg)
-___
+- Просматривать мероприятия и записываться на них.
+- Создавать и редактировать профиль.
+- Просматривать активные турниры и подавать заявки.
+- При наличии Polemica ID в профиле — подтвердить его использование или ввести
+  другой ID. Ник Polemica загружается с публичной страницы профиля.
+- Загрузить фотографию для заявки на турнир.
+- Снять заявку с турнира после подтверждения действия.
+- Получить сообщение о подтверждении или отклонении заявки. При отклонении
+  администратор указывает причину.
+
+### Администраторам
+
+- Управлять мероприятиями, пользователями и рассылками.
+- Открыть раздел **«🏆Турниры»**, выбрать турнир и посмотреть регистрации.
+- Просматривать карточки ожидающих заявок с фотографией и данными профиля,
+  переходить к предыдущей или следующей заявке, подтверждать её либо отклонять
+  с указанием причины.
+
+## Требования
+
+- Python 3.12 (для запуска без Docker).
+- PostgreSQL 16 или совместимая версия.
+- Telegram-бот и токен, полученный у [@BotFather](https://t.me/BotFather).
+- Доступ к интернету для Telegram API и загрузки Polemica-профилей.
+
+## Установка и запуск без Docker
+
+Команды выполняются из корня репозитория.
+
+1. Склонируйте репозиторий и перейдите в него:
+
+   ```bash
+   git clone https://github.com/n3sostr3l/mafia-itmo-manager-bot.git
+   cd mafia-itmo-manager-bot
+   ```
+
+2. Создайте и активируйте виртуальное окружение.
+
+   Linux/macOS:
+
+   ```bash
+   python3.12 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+   Windows PowerShell:
+
+   ```powershell
+   py -3.12 -m venv .venv
+   .venv\Scripts\Activate.ps1
+   ```
+
+3. Установите зависимости:
+
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+
+4. Создайте в корне репозитория файл `.env`:
+
+   ```dotenv
+   BOT_API=токен_от_BotFather
+   ADMIN_CHATS_INFO=telegram_id_первого_администратора
+
+   DB_USER=mafia
+   DB_PASSWORD=замените_на_надежный_пароль
+   DB_HOST=127.0.0.1
+   DB_PORT=5432
+   DB_NAME=event_manager
+
+   ENV=prod
+   ACHIEVEMENT_SERVICE_HOST=https://адрес-сервиса-достижений
+   ```
+
+   Создайте базу и пользователя PostgreSQL с указанными значениями. Узнать свой
+   Telegram ID можно после запуска бота командой `/id`. `ADMIN_CHATS_INFO`
+   задаёт Telegram ID начального администратора; дальнейших администраторов
+   можно добавить через панель бота.
+
+   `ACHIEVEMENT_SERVICE_HOST` нужен для функций достижений и статистики. Если
+   эти функции не используются, значение может оставаться пустым.
+
+5. Подготовьте схему базы и запустите бота:
+
+   ```bash
+   python code/run.py
+   ```
+
+   При запуске приложение создаёт отсутствующие таблицы. Для существующей базы
+   дополнительно выполните миграции из следующего раздела.
+
+   SQL-запросы и операции транзакций записываются в `log.log`. При старте
+   приложение также пишет настроенный адрес PostgreSQL и фактический адрес
+   сервера, сообщённый базой. Значения параметров запросов в логах скрыты.
+
+## Миграции базы данных
+
+Перед миграцией существующей базы сделайте резервную копию. Команда `create_all`
+при старте приложения создаёт отсутствующие таблицы, но не обновляет структуру
+уже существующих таблиц.
+
+Для старой базы сначала убедитесь, что приложение уже запускалось с этой базой
+и в ней есть таблица `user_profiles`. Затем остановите бота и выполните из
+корня репозитория:
+
+```bash
+psql \
+  -h 127.0.0.1 \
+  -p 5432 \
+  -U mafia \
+  -d event_manager \
+  -v ON_ERROR_STOP=1 \
+  -f migration_tournaments.sql
+```
+
+Замените хост, порт, пользователя и имя базы на значения из своего `.env`.
+`psql` запросит пароль пользователя базы данных. После успешной миграции
+перезапустите бота.
+
+Для старой базы, в которой ещё нет поля `events.passes_sent`, также примените:
+
+```bash
+psql \
+  -h 127.0.0.1 \
+  -p 5432 \
+  -U mafia \
+  -d event_manager \
+  -v ON_ERROR_STOP=1 \
+  -f migration_add_passes_sent.sql
+```
+
+Для отправки проходок на турниры добавьте в `tournaments` флаг, который
+предотвращает повторную отправку:
+
+```bash
+psql \
+  -h 127.0.0.1 \
+  -p 5432 \
+  -U mafia \
+  -d event_manager \
+  -v ON_ERROR_STOP=1 \
+  -f migration_tournament_passes_sent.sql
+```
+
+Для ограничения количества гостей примените миграцию `migration_tournament_guest_capacity.sql`.
+Для уже существующих турниров она установит лимит в 10% от общей вместимости
+(с округлением вверх). Для новых турниров лимит задаётся при создании.
+
+Чтобы отделить имя турнира от его описания, примените
+`migration_tournament_name_description.sql`. Старые значения `description`
+будут сохранены как `name`, а новое поле `description` будет добавлено пустым.
+
+## Запуск через Docker Compose
+
+Нужны Docker Engine и Docker Compose. Создайте `.env` в корне репозитория
+с `BOT_API`, `ADMIN_CHATS_INFO`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`,
+`ENV` и, при необходимости, `ACHIEVEMENT_SERVICE_HOST`. Для стандартной
+конфигурации Compose база доступна контейнеру бота по адресу `db:5432`;
+Compose задаёт этот адрес отдельно от локального `DB_HOST`/`DB_PORT`.
+
+Запустите приложение:
+
+```bash
+docker compose up -d --build
+docker compose logs -f bot
+```
+
+После первого запуска, когда приложение создало базовые таблицы, примените
+турнирную миграцию. Чтобы не выполнять её одновременно с работающим ботом:
+
+```bash
+docker compose stop bot
+docker compose exec -T db sh -c \
+  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < migration_tournaments.sql
+docker compose exec -T db sh -c \
+  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < migration_tournament_passes_sent.sql
+docker compose exec -T db sh -c \
+  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < migration_tournament_guest_capacity.sql
+docker compose exec -T db sh -c \
+  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < migration_tournament_name_description.sql
+docker compose up -d bot
+```
+
+Если база старая и в `events` нет `passes_sent`, примените таким же способом
+`migration_add_passes_sent.sql`, пока бот остановлен. Данные PostgreSQL
+сохраняются в Docker volume `postgres_data` при перезапуске контейнеров.
+
+Остановить контейнеры, не удаляя данные:
+
+```bash
+docker compose down
+```
+
+## Создание турниров
+
+Администратор может создать турнир через панель бота: нажмите
+`⚙️Админ панель` → `➕Добавить турнир`, затем отдельно отправьте название и описание,
+место проведения, дату турнира, дедлайн регистрации, общую вместимость
+и вместимость для гостей не из ИТМО. Даты вводятся в формате `ДД.ММ.ГГГГ ЧЧ:ММ`.
+Перед сохранением бот покажет сводку —
+подтвердите её кнопкой `Создать` или отмените действие. Дедлайн должен быть
+не позже даты турнира, общая вместимость — положительным числом, лимит гостей —
+от 0 до общей вместимости. Учитываются все незакрытые заявки гостей, включая
+ожидающие подтверждения. До дедлайна запись открыта; после него турнир создаётся
+закрытым для регистрации.
+
+Чтобы закрыть турнир и перенести его в архив, в панели администратора нажмите
+`📦Архивировать турнир`, выберите турнир и подтвердите действие. Архивирование
+закрывает регистрацию и скрывает турнир от пользователей, но не удаляет сам
+турнир, заявки и историю из базы. Архивные турниры отображаются в списке
+администратора со значком 📦.
+
+Пользователям показываются турниры, у которых `expired = FALSE` и срок
+регистрации (`registry_deadline`) ещё не наступил. Вместимость задаётся полем
+`capacity`; для гостей применяется отдельный лимит `guest_capacity`. В карточке
+турнира отображается число занятых гостевых мест и лимит.
+
 ## Структура проекта
-* ``code`` - Главная папка проекта со всеми файлами  
-    * ``bot`` - Папка с основными элементами бота
-        * ``admin.py`` - Файл с обработчиками сообщений админа
-        * ``keyboards.py`` - Файл со всеми меню(кнопками) бота
-        * ``user.py`` - Файл с обработчиками сообщений пользователя
-        * ``config.py`` - Файл с API токеном бота и айди чатом админа
-    * ``database`` - Папка для работы с базой данных 
-        *  ``models.py`` - Файл для создания моделей(таблиц) 
-        *  ``requests.py`` - Файл для sql - запросов 
-    * ``run.py`` - Файл для запуска бота
-___
 
-## Зависимости
-### Скопируем проект и перейдём в него
-```python
-git clone https://github.com/parap3t/Telegram-Bot-Progressor
-cd Telegram-Bot-Progressor
-```
-## Windows
+- `code/bot/` — обработчики Telegram-сообщений, состояния и клавиатуры.
+- `code/database/` — модели SQLAlchemy, запросы и репозитории.
+- `code/services/` — сервисы работы с турнирами и публичными профилями Polemica.
+- `code/run.py` — точка запуска бота.
+- `migration_tournaments.sql` — схема турниров и заявок.
+- `migration_add_passes_sent.sql` — миграция статуса отправки проходок.
+- `migration_tournament_passes_sent.sql` — статус отправки проходок турнира.
+- `migration_tournament_guest_capacity.sql` — лимит гостей турнира.
+- `migration_tournament_name_description.sql` — разделение названия и описания турнира.
 
-### Создаём виртуальное окружение
-```python
-python -m venv .venv
-```
-### Активируем виртуальное окружение
-```python
-.venv\Scripts\activate
-```
-### Устанавим необходимые фреймворки
-```python
-pip install -r requirements.txt
-```
-___
+## Безопасность конфигурации
 
-## Linux/macOS
-### Создаём виртуальное окружение
-```python
-python3 -m venv .venv
-```
-### Активируем виртуальное окружение
-```python
-source bin/activate
-```
-### Устанавим необходимые фреймворки
-```python
-pip3 install -r requirements.txt
-```
-___
-
-
-## Активация
-Для полноценной работы проекта нужно:  
-1.  Получить токен своего бота в телеграм боте *BotFather*
-2. Вставить токен в файл ``config.py``, расположенный в папке ``bot``, в переменную ``BOT_API``
-3. Включить бота, запустив файл ``run.py``, и отправить ему команду ``/id`` для получения айди чата
-4. Полученное айди вставить в файл ``config.py`` в переменную ``ADMIN_CHAT_ID`` 
-___
-## Документация
-* [sqlalchemy](https://www.sqlalchemy.org/)
-* [xlsxwriter](https://xlsxwriter.readthedocs.io/introduction.html)
-* [openpyxl](https://openpyxl.readthedocs.io/en/stable/)
-* [aiogram](https://docs.aiogram.dev/en/latest/)
-* [asyncio](https://docs.python.org/3/library/asyncio.html)
-* [pandas](https://pandas.pydata.org/)
-* [re](https://docs.python.org/3/library/re.html)
-* [os](https://docs.python.org/3/library/os.html)
-___
-## Авторы
-* [@parap3t](https://github.com/parap3t)
-* [@cenittteee](https://github.com/cenittteee)
-
-___
+Не добавляйте `.env` с токеном Telegram или паролем базы в Git и не отправляйте
+его в чаты. Файл `.env` уже исключён из Git через `.gitignore`.
 
 # Полезное 
 
@@ -107,22 +254,21 @@ docker build -t mafia-bot .
 docker tag mafia-bot:latest g00ida/mafia-bot:latest
 docker push g00ida/mafia-bot:latest
 ```
+## test build
+
+```bash
+docker build -t mafia-bot-test . && docker tag mafia-bot-test:latest g00ida/mafia-bot-test:latest && docker push g00ida/mafia-bot-test:latest
+```
 
 ## Pull
 
 ```bash
-cat .env & docker pull g00ida/mafia-bot:latest
+docker pull g00ida/mafia-bot:latest
+cd /opt/mafia
+cat .env | docker run -d \
   --name mafia-bot \
+  --restart always \
   --env-file /dev/stdin \
   g00ida/mafia-bot:latest
 ```
 
-## Для локального запуска
-
-Чтобы локально запустить проект и обращаться к удаленной БД, создайте в отдельном терминале ssh-туннель к серверу с БД командой
-
-```bash
-ssh -N -p 41830   -L 15432:127.0.0.1:5432   user@ip
-```
-
-Предварительно замените в .env все переменные окружения, связанные с IP на 127.0.0.1, а с портом --- на 15432.

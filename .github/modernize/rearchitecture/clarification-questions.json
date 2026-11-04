@@ -1,0 +1,287 @@
+{
+  "schema": "clarification-questions/v1",
+  "generated_at": "2026-11-04T20:50:00Z",
+  "user_input": "Refactor all large source files in code/ into cohesive responsibility-based modules; add admin ability to edit all tournament fields (name, description, place, date, registration deadline, total capacity, guest capacity); reject saving a total/guest capacity reduction below the number of existing active registrations and explain the minimum. Preserve existing behavior and existing in-progress working-tree changes; do not revert unrelated Dockerfile change. Previous task introduced Tournament.name and Tournament.description plus migration_tournament_name_description.sql, creation form, docs. Integrate with that current state; preserve it. Refactor large application modules (not dependencies, venv, logs, migrations) along cohesive functionality boundaries; make small, behavior-preserving modules, adjust imports/router inclusion accordingly. Add/adjust focused tests if existing test infrastructure permits; validate imports/syntax and tests. The editing flow should be admin-only, consistent with current bot UI/FSM patterns, validate all fields, and persist transactionally using repository/service layer. Think through date/deadline and guest constraints; maintain capacity invariants. Update README and migration guidance only if required. Do not commit. Report modules split, feature details, migration/operational steps if any, and exact validation performed. Bounded stop: finish the feature, structural decomposition of large code/ sources, focused validation; avoid unrelated cleanup or formatting.",
+  "title": "Python Telegram bot refactor and tournament editing",
+  "assessment_snapshot": {
+    "intro": "The supplied project facts describe a brownfield Python Telegram bot enhancement and in-place refactor, with an existing Tournament name/description change that must be preserved:",
+    "bullets": [
+      "Approximately 5,027 LOC across code/bot, code/database, code/services, code/plugins, and root modules",
+      "Existing in-progress working-tree changes include the prior Tournament name/description work and an unrelated Dockerfile change",
+      "Requested changes include admin tournament editing, capacity invariants, cohesive module decomposition, and focused validation"
+    ]
+  },
+  "proposed_outcome": "Keep the existing Python Telegram bot stack and current working-tree changes, refactor only large application modules in code/ into cohesive behavior-preserving modules, and add an admin-only transactional tournament-edit flow that validates fields and prevents capacity reductions below active registrations; preserve the prior name/description migration and creation-form work, avoid unrelated cleanup, and do not commit.",
+  "scope": [
+    "backend",
+    "generic"
+  ],
+  "status": "answered",
+  "questions": [
+    {
+      "id": "B1",
+      "kit": "backend",
+      "field": "target.framework",
+      "title": "Python bot stack and version",
+      "question": "Which Python Telegram-bot framework and Python runtime version should remain the target? The supplied facts identify a Python Telegram bot but do not name exact framework/runtime versions. You may confirm that the implementation should retain the versions already in the project.",
+      "importance": "required",
+      "impact": 4,
+      "recommended": null,
+      "default": null,
+      "prefilled": true,
+      "prefilled_value": "Keep the existing Python Telegram-bot framework and Python runtime versions; identify exact versions from the project",
+      "answer": {
+        "value": "Keep the existing Python Telegram-bot framework and Python runtime versions; identify exact versions from the project",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Keep the existing Python Telegram-bot framework and Python runtime versions; identify exact versions from the project",
+          "label": "Keep the existing framework/runtime versions; identify them from the project"
+        },
+        {
+          "value": "Specify target framework and Python major version",
+          "label": "Specify a framework and Python major version"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B2",
+      "kit": "backend",
+      "field": "api.contract_preservation",
+      "title": "Bot/API compatibility",
+      "question": "What compatibility policy should apply to existing externally visible bot/API behavior while editing and refactoring?",
+      "importance": "required",
+      "impact": 5,
+      "recommended": "must preserve",
+      "default": "must preserve",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "must preserve",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "must preserve",
+          "label": "Must preserve existing contracts and externally visible behavior"
+        },
+        {
+          "value": "can break with versioning",
+          "label": "Breaking changes are allowed only with versioning"
+        },
+        {
+          "value": "can break",
+          "label": "Breaking changes are allowed"
+        },
+        {
+          "value": "partial",
+          "label": "Preserve only specified contracts/flows"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B3",
+      "kit": "backend",
+      "field": "data.migration_strategy",
+      "title": "Database migration approach",
+      "question": "Should this work keep the existing schema and migration history, adding a new migration only if required, or use another data-migration approach? The prior Tournament name/description migration must remain intact.",
+      "importance": "required",
+      "impact": 5,
+      "recommended": "in-place",
+      "default": "TBD / assess in research phase",
+      "prefilled": true,
+      "prefilled_value": "in-place",
+      "answer": {
+        "value": "in-place",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "in-place",
+          "label": "In-place: preserve current database and add migrations only when required"
+        },
+        {
+          "value": "dual-write",
+          "label": "Dual-write: introduce a parallel schema during transition"
+        },
+        {
+          "value": "new schema",
+          "label": "Use a new schema and migrate data"
+        },
+        {
+          "value": "no migration",
+          "label": "Do not change database schema"
+        },
+        {
+          "value": "TBD / assess in research phase",
+          "label": "Assess migration needs during analysis"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B4",
+      "kit": "backend",
+      "field": "auth.framework",
+      "title": "Admin authorization",
+      "question": "Which authentication/authorization mechanism should the admin-only edit flow use?",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": "Preserve existing admin authorization mechanism and patterns",
+      "default": "preserve existing auth mechanism; detect from codebase",
+      "prefilled": true,
+      "prefilled_value": "Preserve existing admin authorization mechanism and patterns",
+      "answer": {
+        "value": "Preserve existing admin authorization mechanism and patterns",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Preserve existing admin authorization mechanism and patterns",
+          "label": "Preserve the existing admin authorization mechanism and patterns"
+        },
+        {
+          "value": "Specify a different authentication/authorization framework",
+          "label": "Specify a different framework or policy"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "B5",
+      "kit": "backend",
+      "field": "nfr.sla",
+      "title": "Operational targets",
+      "question": "Are there latency, throughput, availability, or other service-level targets beyond matching the current production baseline?",
+      "importance": "recommended",
+      "impact": 2,
+      "recommended": "Match current production baseline; no regression",
+      "default": "match current production baseline; no regression",
+      "prefilled": false,
+      "prefilled_value": null,
+      "answer": {
+        "value": "Match current production baseline; no regression",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "Match current production baseline; no regression",
+          "label": "Match current production baseline; no regression"
+        },
+        {
+          "value": "Specify additional SLA targets",
+          "label": "Specify additional SLA targets"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "G1",
+      "kit": "generic",
+      "field": "success.definition",
+      "title": "Definition of done",
+      "question": "What outcome defines success for this work?",
+      "importance": "required",
+      "impact": 5,
+      "recommended": null,
+      "default": "feature parity with the current system; all existing user-facing behaviors preserved",
+      "prefilled": true,
+      "prefilled_value": "Preserve existing behavior and working-tree changes; complete the tournament editing and large-module refactor; validate imports, syntax, and available tests; report modules split, feature details, operational steps, and exact validation performed.",
+      "answer": {
+        "value": "Preserve existing behavior and working-tree changes; complete the tournament editing and large-module refactor; validate imports, syntax, and available tests; report modules split, feature details, operational steps, and exact validation performed. Code is more readable and supportable",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "G2",
+      "kit": "generic",
+      "field": "out_of_scope",
+      "title": "Out-of-scope boundaries",
+      "question": "Which areas must remain untouched?",
+      "importance": "recommended",
+      "impact": 3,
+      "recommended": null,
+      "default": "no explicit exclusions; agent will infer from project structure",
+      "prefilled": true,
+      "prefilled_value": "Do not revert or alter unrelated in-progress changes, including the Dockerfile change; do not refactor small files, dependencies, venv, logs, or migrations; avoid unrelated cleanup/formatting; do not commit.",
+      "answer": {
+        "value": "Do not revert or alter unrelated in-progress changes, including the Dockerfile change; do not refactor small files, dependencies, venv, logs, or migrations; avoid unrelated cleanup/formatting; do not commit.",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    },
+    {
+      "id": "G3",
+      "kit": "generic",
+      "field": "existing_tests.posture",
+      "title": "Existing test policy",
+      "question": "How should existing tests be treated during implementation and validation?",
+      "importance": "recommended",
+      "impact": 4,
+      "recommended": "must pass",
+      "default": "must pass",
+      "prefilled": true,
+      "prefilled_value": "partial: run available focused tests and import/syntax checks when test infrastructure permits; preserve existing behavior",
+      "answer": {
+        "value": "must pass",
+        "source": "user"
+      },
+      "depends_on": null,
+      "options": [
+        {
+          "value": "must pass",
+          "label": "Must pass; no regressions"
+        },
+        {
+          "value": "can rewrite",
+          "label": "May be replaced with equivalent coverage"
+        },
+        {
+          "value": "ignore",
+          "label": "Ignore existing tests and write new tests from scratch"
+        },
+        {
+          "value": "partial: run available focused tests and import/syntax checks",
+          "label": "Run available focused tests and import/syntax checks"
+        }
+      ],
+      "allow_other": true,
+      "type": "single_select"
+    },
+    {
+      "id": "G5",
+      "kit": "generic",
+      "field": "constraints.additional",
+      "title": "Additional constraints",
+      "question": "Are there additional requirements, exclusions, dependencies, compliance rules, or operational constraints not covered above?",
+      "importance": "optional",
+      "impact": 2,
+      "recommended": null,
+      "default": "None beyond the decisions listed in this specification.",
+      "prefilled": true,
+      "prefilled_value": "None beyond the decisions listed in this specification.",
+      "answer": {
+        "value": "None beyond the decisions listed in this specification.",
+        "source": "user"
+      },
+      "depends_on": null,
+      "type": "text"
+    }
+  ]
+}

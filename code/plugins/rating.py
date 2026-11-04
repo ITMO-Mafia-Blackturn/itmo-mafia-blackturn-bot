@@ -21,7 +21,7 @@ async def get_club_rating() -> str:
     resp = requests.get(
         f"https://app.polemicagame.com/v1/clubs/289/metrics?startDate=2024-09-01T00:00:00.000&endDate={today}T{hms}")
     if resp.status_code != 200:
-        logger.warn(resp.text)
+        logger.warning(resp.text)
         return "Неизвестная ошибка"
     data = json.loads(resp.text)
     registered_users: list[UserProfile] = list(await get_users_with_polemica_id())
@@ -46,16 +46,17 @@ async def get_club_rating() -> str:
     top10 = ranking[:10]
     
     # Выводим топ-результат
-    ranks_texts = [f"<pre>{"СТАТИСТИКА КЛУБА".center(59)}\n\n",
+    ranks_texts = [f'{"СТАТИСТИКА КЛУБА".center(59)}\n\n',
                    f"{'#':>2}. {'Ник':<27} {'Сумма баллов':>10} {'Средний балл':>10}",
                    f'{"-" * 59}']
     for rank, user in enumerate(top10, 1):
         username = escape(user["username"])
-        avg = user["totalScores"] / user["totalGames"]
+        avg = user["totalScores"] / user["totalGames"] if user["totalGames"] else 0
 
         ranks_texts.append(
             f"{rank:>2}. {username:<27} "
             f"{user['totalScores']:>10.2f} "
             f"{avg:>10.4f}"
         )
-    return f'<pre>{"\n".join(ranks_texts)}</pre>'
+    rows = "\n".join(ranks_texts)
+    return f"<pre>{rows}</pre>"

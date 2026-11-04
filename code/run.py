@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 
 from bot.admin import admin
 from bot.user import user
+from bot.tournament import tournament_admin, tournament_user
 from config import BOT_API, ENV
 import os
 from database.models import async_main
@@ -28,7 +29,7 @@ async def main() -> None:
         bot = Bot(token=BOT_API, 
                 session=session)
         dp = Dispatcher()  # Получение обновлений бота
-        dp.include_routers(admin, user)
+        dp.include_routers(admin, user, tournament_admin, tournament_user)
         
         await bot.delete_webhook(drop_pending_updates=True)
         
@@ -38,7 +39,7 @@ async def main() -> None:
         
         bot = Bot(token=BOT_API)
         dp = Dispatcher()  # Получение обновлений бота
-        dp.include_routers(admin, user)
+        dp.include_routers(admin, user, tournament_admin, tournament_user)
         
         await bot.delete_webhook(drop_pending_updates=True)
         
