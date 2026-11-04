@@ -7,10 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir aiohttp-socks
 
 COPY ./code ./code
-COPY ./migration_add_passes_sent.sql ./migration_add_passes_sent.sql
-COPY ./migration_tournament_passes_sent.sql ./migration_tournament_passes_sent.sql
-COPY ./migration_tournaments.sql ./migration_tournaments.sql
-COPY ./migration_tournament_guest_capacity.sql ./migration_tournament_guest_capacity.sql
+COPY ./migrations ./migrations
+
 
 EXPOSE 12345
 

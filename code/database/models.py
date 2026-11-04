@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy import Boolean, DateTime, LargeBinary, text
 from sqlalchemy import String, Integer, ForeignKey, TIMESTAMP, BigInteger
@@ -152,9 +153,6 @@ class PlayerTournamentRegistration(Base):
     rejected: Mapped[bool] = mapped_column(Boolean, default=False)
     rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-# При запуске главного файла создаём таблицы
-
-
 async def async_main():
     logger = logging.getLogger(__name__)
     logger.info(
@@ -176,4 +174,6 @@ async def async_main():
             server_address,
             server_port,
         )
+
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

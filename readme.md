@@ -254,6 +254,11 @@ docker build -t mafia-bot .
 docker tag mafia-bot:latest g00ida/mafia-bot:latest
 docker push g00ida/mafia-bot:latest
 ```
+## test build
+
+```bash
+docker build -t mafia-bot-test . && docker tag mafia-bot-test:latest g00ida/mafia-bot-test:latest && docker push g00ida/mafia-bot-test:latest
+```
 
 ## Pull
 
@@ -266,3 +271,4 @@ cat .env | docker run -d \
   --env-file /dev/stdin \
   g00ida/mafia-bot:latest
 ```
+

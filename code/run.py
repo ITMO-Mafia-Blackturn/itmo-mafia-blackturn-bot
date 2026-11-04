@@ -6,8 +6,7 @@ from aiogram import Bot, Dispatcher
 
 from bot.admin import admin
 from bot.user import user
-from bot.tournament_admin import tournament_admin
-from bot.tournament_user import tournament_user
+from bot.tournament import tournament_admin, tournament_user
 from config import BOT_API, ENV
 import os
 from database.models import async_main
