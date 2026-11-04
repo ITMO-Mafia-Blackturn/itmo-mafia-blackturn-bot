@@ -731,9 +731,9 @@ async def capture_new_value(message: Message, state: FSMContext):
         passport = profile.passport
         phone = value
     elif field == "nickname":
-        if not 2 <= len(value) <= 3:
+        if not 2 <= len(value) <= 167:
             await message.answer(
-                "Никнейм должен содержать от 2 до 3 символов. Попробуйте ещё раз."
+                "Никнейм должен содержать от 2 до 167 символов. Попробуйте ещё раз."
             )
             return
 
@@ -809,7 +809,7 @@ async def capture_new_value(message: Message, state: FSMContext):
 async def process_nickname(message: Message, state: FSMContext):
     nickname = message.text.strip()
     
-    if 2<=len(nickname)<=3:
+    if 2<=len(nickname)<=167:
         await state.update_data(nickname=nickname)
         await message.answer("Вы из ИТМО?", reply_markup=kb.are_u_from_itmo_keyboard)
         await state.set_state(ProfileEdit.is_itmo)
@@ -941,7 +941,7 @@ async def process_level(callback: CallbackQuery, state: FSMContext):
 
             await state.update_data(tournament_registration_flow=False)
             await callback.answer()
-            await continue_tournament_setup(callback.message, state, polemica_id)
+            await continue_tournament_setup(callback.message, state, polemica_id, callback.from_user.id)
             return
         
         profile_info = f"""

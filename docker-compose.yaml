@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16
@@ -27,9 +25,8 @@ services:
     env_file:
       - .env
     environment:
-      # Внутри сети Docker имя хоста совпадает с именем сервиса базы (db)
-      - DB_HOST=prod
-      - DB_PORT=5433
+      DB_HOST: db
+      DB_PORT: 5432
 
 volumes:
   postgres_data:

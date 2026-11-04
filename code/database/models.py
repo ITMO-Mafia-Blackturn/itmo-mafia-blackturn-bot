@@ -1,6 +1,7 @@
+import logging
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, LargeBinary
+from sqlalchemy import Boolean, DateTime, LargeBinary, text
 from sqlalchemy import String, Integer, ForeignKey, TIMESTAMP, BigInteger
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -11,7 +12,11 @@ from config import DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_HOST
 DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Создаём бд и подключаемся к ней
-engine = create_async_engine(url=DATABASE_URL)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+engine = create_async_engine(
+    url=DATABASE_URL,
+    hide_parameters=True,
+)
 async_session = async_sessionmaker(engine)
 
 
@@ -111,6 +116,10 @@ class Tournament(Base):
     expired: Mapped[bool] = mapped_column(Boolean, nullable = False)
     registry_deadline: Mapped[datetime] = mapped_column(DateTime)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False)
+    guest_capacity: Mapped[int] = mapped_column(Integer, nullable=False)
+    passes_sent: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     
     def is_registration_open(self) -> bool:
         return (
@@ -146,5 +155,24 @@ class PlayerTournamentRegistration(Base):
 
 
 async def async_main():
+    logger = logging.getLogger(__name__)
+    logger.info(
+        "Connecting to PostgreSQL: host=%s port=%s database=%s",
+        DB_HOST,
+        DB_PORT,
+        DB_NAME,
+    )
     async with engine.begin() as conn:
+        result = await conn.execute(
+            text(
+                "SELECT current_database(), inet_server_addr(), inet_server_port()"
+            )
+        )
+        database, server_address, server_port = result.one()
+        logger.info(
+            "Connected to PostgreSQL: database=%s server=%s:%s",
+            database,
+            server_address,
+            server_port,
+        )
         await conn.run_sync(Base.metadata.create_all)

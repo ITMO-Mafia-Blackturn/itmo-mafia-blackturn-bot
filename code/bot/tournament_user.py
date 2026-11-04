@@ -12,9 +12,12 @@ from bot.tournament_user_states import TournamentUserState
 from bot.user import ProfileEdit
 from services.polemica_service import PolemicaProfileError, get_polemica_nickname
 from services.tournament_service import (
+    TournamentRegistrationCard,
     apply_for_tournament,
     count_active_registrations,
+    count_active_guest_registrations,
     get_registration,
+    get_approved_registrations,
     get_tournament,
     get_tournaments,
     get_user_profile,
@@ -29,8 +32,32 @@ logger = logging.getLogger(__name__)
 tournament_user = Router()
 
 
+def _confirmed_roster_text(
+    players: list[TournamentRegistrationCard],
+) -> str:
+    lines = [f"Подтверждённый состав ({len(players)}):"]
+    roster_length = len(lines[0])
+    for index, player in enumerate(players):
+        line = (
+            f"• {escape(player.polemica_nickname or 'Ник Polemica не указан')} "
+            f"({escape(player.bot_nickname)})"
+        )
+        if roster_length + len(line) + 1 > 2800:
+            lines.append(f"… и ещё {len(players) - index} участников.")
+            break
+        lines.append(line)
+        roster_length += len(line) + 1
+    if not players:
+        lines.append("Пока нет подтверждённых участников.")
+    return "\n".join(lines)
+
+
 async def continue_tournament_setup(
-    message: Message, state: FSMContext, polemica_id: int | None
+    message: Message,
+    state: FSMContext,
+    polemica_id: int | None,
+    *,
+    user_id: int,
 ) -> None:
     if polemica_id is None:
         await state.set_state(TournamentUserState.polemica_id)
@@ -42,14 +69,19 @@ async def continue_tournament_setup(
     try:
         polemica_nickname = await get_polemica_nickname(polemica_id)
     except (PolemicaProfileError, httpx.HTTPError, OSError) as exc:
-        logger.warning("Polemica profile lookup failed for id %s: %s", polemica_id, exc)
+        logger.warning(
+            "Polemica profile lookup failed for id %s (%s): %s",
+            polemica_id,
+            type(exc).__name__,
+            exc,
+        )
         await state.set_state(TournamentUserState.polemica_id)
         await message.answer(
             "Не удалось получить ник с Polemica. Проверьте ID и отправьте его ещё раз:"
         )
         return
 
-    profile = await get_user_profile(message.from_user.id)
+    profile = await get_user_profile(user_id)
     if profile is None:
         await state.clear()
         await message.answer(
@@ -93,7 +125,7 @@ async def show_active_tournaments(
         await message.answer(text, reply_markup=markup)
 
 
-@tournament_user.message(F.text == "Турниры")
+@tournament_user.message(F.text.in_({"Турниры", "🏆Турниры"}))
 async def open_tournaments(message: Message, state: FSMContext) -> None:
     if message.from_user is None:
         return
@@ -133,7 +165,12 @@ async def use_profile_polemica_id(
         await callback.answer("В профиле не найден Polemica ID.", show_alert=True)
         return
     await callback.answer()
-    await continue_tournament_setup(callback.message, state, profile.polemica_id)
+    await continue_tournament_setup(
+        callback.message,
+        state,
+        profile.polemica_id,
+        user_id=callback.from_user.id,
+    )
 
 
 @tournament_user.callback_query(F.data == "tournament:enter_id")
@@ -161,7 +198,9 @@ async def receive_polemica_id(message: Message, state: FSMContext) -> None:
             "Профиль бота не найден. Создайте его через «📝Редактировать профиль»."
         )
         return
-    await continue_tournament_setup(message, state, polemica_id)
+    await continue_tournament_setup(
+        message, state, polemica_id, user_id=message.from_user.id
+    )
 
 
 @tournament_user.message(TournamentUserState.photo, F.photo)
@@ -209,29 +248,39 @@ async def show_tournament_details(
         return
 
     registration = await get_registration(tournament.id, profile.id)
+    confirmed_players = await get_approved_registrations(tournament.id)
     registered = registration is not None and not registration.rejected
+    active_guest_count = await count_active_guest_registrations(tournament.id)
     can_register = (
         not registered
         and not tournament.expired
         and tournament.registry_deadline >= datetime.now()
         and (await count_active_registrations(tournament.id)) < tournament.capacity
     )
+    can_guest_register = profile.is_itmo or active_guest_count < tournament.guest_capacity
     details = (
         f"<b>{escape(tournament.description)}</b>\n"
         f"Дата: {tournament.date:%d.%m.%Y %H:%M}\n"
         f"Место: {escape(tournament.place)}\n"
         f"Регистрация до: {tournament.registry_deadline:%d.%m.%Y %H:%M}\n"
+        f"Гости: {active_guest_count}/{tournament.guest_capacity}\n"
+        f"{_confirmed_roster_text(confirmed_players)}\n"
         f"Статус вашей заявки: {escape(registration_status(registration))}"
     )
     if registration and registration.rejected and registration.rejection_reason:
         details += f"\nПричина отказа: {escape(registration.rejection_reason)}"
     if not registered and not can_register:
         details += "\nРегистрация закрыта или все места заняты."
+    elif not registered and not can_guest_register:
+        details += "\nМеста для гостей закончились."
 
     await callback.message.edit_text(
         details,
         reply_markup=kb.get_tournament_actions_keyboard(
-            tournament.id, registered=registered, can_register=can_register
+            tournament.id,
+            registered=registered,
+            can_register=can_register,
+            can_guest_register=can_guest_register,
         ),
         parse_mode="HTML",
     )
@@ -259,6 +308,7 @@ async def apply_for_selected_tournament(callback: CallbackQuery) -> None:
         "already_registered": "Вы уже записаны на этот турнир.",
         "closed": "Регистрация на турнир закрыта.",
         "full": "Свободных мест на турнире больше нет.",
+        "guest_full": "Свободных мест для гостей больше нет.",
         "not_found": "Турнир или профиль игрока не найден.",
     }
     if result == "created":

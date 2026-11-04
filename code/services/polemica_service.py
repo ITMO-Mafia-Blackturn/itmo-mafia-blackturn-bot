@@ -1,4 +1,3 @@
-import json
 from html.parser import HTMLParser
 
 import httpx
@@ -11,37 +10,39 @@ class PolemicaProfileError(ValueError):
 class _ProfileParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
-        self.user: dict[str, object] | None = None
+        self.title_parts: list[str] = []
+        self.in_title = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag != "site-settings":
-            return
+        if tag == "title":
+            self.in_title = True
 
-        user_json = dict(attrs).get(":user")
-        if not user_json:
-            return
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "title":
+            self.in_title = False
 
-        try:
-            parsed_user = json.loads(user_json)
-        except json.JSONDecodeError:
-            return
-
-        if isinstance(parsed_user, dict):
-            self.user = parsed_user
+    def handle_data(self, data: str) -> None:
+        if self.in_title:
+            self.title_parts.append(data)
 
 
 async def get_polemica_nickname(polemica_id: int) -> str:
     url = f"https://polemicagame.com/profile/{polemica_id}"
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
         response = await client.get(url)
         response.raise_for_status()
 
     parser = _ProfileParser()
     parser.feed(response.text)
-    if parser.user is None:
+    title = "".join(parser.title_parts).strip()
+    print()
+    print(response.text, title, sep = "\n")
+    print()
+    if "–" not in title:
         raise PolemicaProfileError("Профиль Polemica не найден или недоступен.")
 
-    nickname = parser.user.get("username")
-    if not isinstance(nickname, str) or not nickname.strip():
-        raise PolemicaProfileError("В профиле Polemica не найден ник.")
-    return nickname.strip()
+    nickname = title.split("–", maxsplit=1)[0].strip()
+    if not nickname:
+        raise PolemicaProfileError("В заголовке профиля Polemica не найден ник.")
+
+    return nickname
