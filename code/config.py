@@ -21,6 +21,5 @@ ACHIEVEMENT_SERVICE_HOST = get_config_value("ACHIEVEMENT_SERVICE_HOST")
 ENV = get_config_value("ENV")
 
 
-print(BOT_API, ENV)
 # ADMIN_CHAT_ID = config_env.get("ADMIN_CHAT_ID")
 # ADMIN_CHAT_ID = '..ADMIN_CHAT_ID'

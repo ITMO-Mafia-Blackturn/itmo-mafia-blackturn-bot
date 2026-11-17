@@ -1,7 +1,8 @@
+import logging
 from datetime import datetime
-from typing import Optional, Union
+from pathlib import Path
 
-from sqlalchemy import Boolean, DateTime, LargeBinary
+from sqlalchemy import Boolean, DateTime, LargeBinary, text
 from sqlalchemy import String, Integer, ForeignKey, TIMESTAMP, BigInteger
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -12,7 +13,11 @@ from config import DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, DB_HOST
 DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Создаём бд и подключаемся к ней
-engine = create_async_engine(url=DATABASE_URL)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
+engine = create_async_engine(
+    url=DATABASE_URL,
+    hide_parameters=True,
+)
 async_session = async_sessionmaker(engine)
 
 
@@ -102,35 +107,73 @@ class UserProfile(Base):
     username: Mapped[str] = mapped_column(String(100), nullable=True)
 
 
-class Tournaments(Base):
+class Tournament(Base):
     __tablename__ = "tournaments"
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    description: Mapped[str] = mapped_column(String(700), nullable= False)
+    name: Mapped[str] = mapped_column(String(700), nullable=False)
+    description: Mapped[str] = mapped_column(String(700), nullable=False)
     place: Mapped[str] = mapped_column(String(150), nullable = False)
     date: Mapped[datetime] = mapped_column(TIMESTAMP, nullable = False)
     expired: Mapped[bool] = mapped_column(Boolean, nullable = False)
     registry_deadline: Mapped[datetime] = mapped_column(DateTime)
-    capacity: Mapped[int] = mapped_column(int, nullable = False)
+    capacity: Mapped[int] = mapped_column(Integer, nullable=False)
+    guest_capacity: Mapped[int] = mapped_column(Integer, nullable=False)
+    passes_sent: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+    
+    def is_registration_open(self) -> bool:
+        return (
+            not self.expired
+            and datetime.now() <= self.registry_deadline
+        )
+    
+    def is_full(self, registered_users_count: int) -> bool:
+        return registered_users_count >= self.capacity
 
-class TournamentPlayers(Base):
+class TournamentPlayer(Base):
     __tablename__ = "tournament_players"
     
     id: Mapped[int] = mapped_column(primary_key = True)
     user_profile_id: Mapped[int] = mapped_column(ForeignKey(UserProfile.id))
+    polemica_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    polemica_nickname: Mapped[str | None] = mapped_column(String(100), nullable=True)
     photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable= True)
 
-class PlayerTournamentRegistries(Base):
+class PlayerTournamentRegistration(Base):
     __tablename__ = "tournament_registries"
     
     id: Mapped[int] = mapped_column(primary_key = True)
-    tournament_player_id: Mapped[int] = mapped_column(ForeignKey(TournamentPlayers.id))
-    tournament: Mapped[bool] = mapped_column(Boolean, default = False)
+    tournament_player_id: Mapped[int] = mapped_column(ForeignKey(TournamentPlayer.id))
+    tournament_id: Mapped[int | None] = mapped_column(
+        ForeignKey(Tournament.id), nullable=True
+    )
     approved: Mapped[bool] = mapped_column(Boolean, default = False)
-
-# При запуске главного файла создаём таблицы
-
+    rejected: Mapped[bool] = mapped_column(Boolean, default=False)
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
 async def async_main():
+    logger = logging.getLogger(__name__)
+    logger.info(
+        "Connecting to PostgreSQL: host=%s port=%s database=%s",
+        DB_HOST,
+        DB_PORT,
+        DB_NAME,
+    )
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            text(
+                "SELECT current_database(), inet_server_addr(), inet_server_port()"
+            )
+        )
+        database, server_address, server_port = result.one()
+        logger.info(
+            "Connected to PostgreSQL: database=%s server=%s:%s",
+            database,
+            server_address,
+            server_port,
+        )
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

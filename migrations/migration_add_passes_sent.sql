@@ -3,7 +3,7 @@
 -- Описание: Добавляет поле для отслеживания статуса отправки проходок
 
 -- Добавить новое поле в таблицу events
-ALTER TABLE events ADD COLUMN passes_sent BOOLEAN DEFAULT FALSE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS passes_sent BOOLEAN DEFAULT FALSE;
 
 -- Обновить существующие записи (по умолчанию проходки не отправлены)
 UPDATE events SET passes_sent = FALSE WHERE passes_sent IS NULL;
