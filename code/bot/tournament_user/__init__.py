@@ -4,3 +4,5 @@ from bot.tournament_user.registration import tournament_user as registration_rou
 
 tournament_user = Router()
 tournament_user.include_routers(onboarding_router, registration_router)
+
+__all__ = ["tournament_user"]

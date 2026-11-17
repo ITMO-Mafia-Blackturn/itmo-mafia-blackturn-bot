@@ -40,7 +40,12 @@ tournament_admin = Router()
 from bot.tournament_admin.common import _is_admin, _tournament_creation_data_text
 
 
-@tournament_admin.callback_query(F.data.startswith("tournament_admin:"))
+@tournament_admin.callback_query(
+    F.data.regexp(
+        r"^tournament_admin:(?:noop|create_cancel|archive_cancel|create_confirm|"
+        r"archive_select:\d+|archive_confirm:\d+|select:\d+)$"
+    )
+)
 async def handle_catalog_callback(callback: CallbackQuery, state: FSMContext) -> None:
         if not await _is_admin(callback.from_user.id):
             await callback.answer("Нет доступа.", show_alert=True)

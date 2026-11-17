@@ -43,7 +43,11 @@ from bot.tournament_admin.review_views import (
     _render_registration_card, _finish_registration_review,
 )
 
-@tournament_admin.callback_query(F.data.startswith("tournament_admin:"))
+@tournament_admin.callback_query(
+    F.data.regexp(
+        r"^tournament_admin:(?:review:\d+|details:\d+|previous|next|approve:\d+|reject:\d+)$"
+    )
+)
 async def handle_review_callback(callback: CallbackQuery, state: FSMContext) -> None:
         if not await _is_admin(callback.from_user.id):
             await callback.answer("Нет доступа.", show_alert=True)
@@ -58,6 +62,51 @@ async def handle_review_callback(callback: CallbackQuery, state: FSMContext) -> 
                 tournament_review_message_id=None,
             )
             await _show_next_pending(callback, state, tournament_id)
+            return
+
+        if action == "details":
+            tournament_id = int(arguments[0])
+            registrations = await get_all_registrations(tournament_id)
+            queue = [
+                registration.registration_id
+                for registration in registrations
+                if not registration.rejected
+            ]
+            if not queue:
+                await callback.answer(
+                    "Нет заявок, которые можно посмотреть.", show_alert=True
+                )
+                return
+
+            data = await state.get_data()
+            review_message_id = data.get("tournament_review_message_id")
+            review_chat_id = data.get("tournament_review_chat_id")
+            await state.set_state(None)
+            await state.update_data(
+                tournament_admin_id=tournament_id,
+                tournament_rejection_id=None,
+                tournament_registration_ids=queue,
+                tournament_registration_index=0,
+                tournament_review_message_id=(
+                    review_message_id
+                    if isinstance(review_message_id, int)
+                    and review_chat_id == callback.message.chat.id
+                    else None
+                ),
+                tournament_review_chat_id=callback.message.chat.id,
+            )
+            rendered = await _render_registration_card(
+                callback.bot,
+                callback.message.chat.id,
+                state,
+                queue[0],
+                0,
+                queue,
+            )
+            if not rendered:
+                await callback.answer("Заявка или профиль не найдены.", show_alert=True)
+                return
+            await callback.answer()
             return
 
         if action in {"previous", "next"}:

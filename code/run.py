@@ -29,7 +29,7 @@ async def main() -> None:
         bot = Bot(token=BOT_API, 
                 session=session)
         dp = Dispatcher()  # Получение обновлений бота
-        dp.include_routers(admin, user, tournament_admin, tournament_user)
+        dp.include_routers(admin, tournament_admin, user, tournament_user)
         
         await bot.delete_webhook(drop_pending_updates=True)
         
@@ -39,7 +39,7 @@ async def main() -> None:
         
         bot = Bot(token=BOT_API)
         dp = Dispatcher()  # Получение обновлений бота
-        dp.include_routers(admin, user, tournament_admin, tournament_user)
+        dp.include_routers(admin, tournament_admin, user, tournament_user)
         
         await bot.delete_webhook(drop_pending_updates=True)
         

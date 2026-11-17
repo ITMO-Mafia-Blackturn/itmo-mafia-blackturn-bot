@@ -1,5 +1,4 @@
 from datetime import datetime
-from logging import exception
 from typing import Optional
 from sqlalchemy import and_
 from sqlalchemy import select, delete, update, func, text
@@ -28,18 +27,18 @@ async def get_users_from_mailing():
 
 async def get_chat_ids_for_users_in_mailing(event_id: int) -> list[int]:
     async with async_session() as session:
-        # Define the query
         query = (select(UserInMailing.chat_id)
+                 .distinct()
                  .join(EventSingUp, UserInMailing.chat_id == EventSingUp.chat_id)
                  .where(EventSingUp.event_id == int(event_id))
                  .where(EventSingUp.event_status == 1))
 
-        # Execute and fetch the results
-        try:
-            result = await session.execute(query)
-        except exception as e:
-            print(e)
+        result = await session.execute(query)
+        return list(result.scalars().all())
 
-        chat_ids = result.scalars().all()
-
-        return chat_ids
+async def get_chat_ids_for_all_users_in_mailing() -> list[int]:
+    async with async_session() as session:
+        result = await session.scalars(
+            select(UserInMailing.chat_id).distinct()
+        )
+        return list(result.all())

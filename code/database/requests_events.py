@@ -3,6 +3,7 @@ from logging import exception
 from typing import Optional
 from sqlalchemy import and_
 from sqlalchemy import select, delete, update, func, text
+from database.requests_profiles import get_user_profile
 from config import ADMIN_CHATS_INFO
 from database.models import Admin, BannedUser, UserInMailing, Event, EventSingUp, UserProfile
 from database.models import async_session

@@ -61,6 +61,11 @@ async def get_confirm_menu(callback: str):
     ])
     return keyboard
 
+mailing_audience_markup = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="👥 Всем пользователям", callback_data="mailing:all")],
+    [InlineKeyboardButton(text="🎉 Участникам мероприятия", callback_data="mailing:event")],
+])
+
 async def get_personal_data_agreement_keyboard():
     keyboard = ReplyKeyboardBuilder()
     keyboard.add(KeyboardButton(text="✅Даю согласие"))

@@ -60,7 +60,7 @@ def _registration_list_text(
     for number, registration in enumerate(registrations, start=1):
         lines.append(
             f"{number}. {escape(registration.polemica_nickname or 'не указан')}, "
-            f"Polemica ID: {registration.polemica_id or 'не указан'} — "
+            f"{_polemica_profile_text(registration.polemica_id)} — "
             f"{escape(registration_status_from_card(registration))}"
         )
     text = "\n".join(lines)
@@ -81,6 +81,14 @@ def registration_status_from_card(registration: TournamentRegistrationCard) -> s
         return f"отклонена: {reason}"
     return "подтверждена" if registration.approved else "не подтверждена"
 
+def _polemica_profile_text(polemica_id: int | None) -> str:
+    if polemica_id is None:
+        return "Polemica ID: не указан"
+    return (
+        f'Polemica ID: <a href="https://polemicagame.com/profile/'
+        f'{polemica_id}">{polemica_id}</a>'
+    )
+
 def _review_text(registration: TournamentRegistrationCard) -> str:
     level_info = kb.get_level_info_by_id(registration.bot_level)
     level = level_info["level_name"] if level_info else str(registration.bot_level)
@@ -94,7 +102,7 @@ def _review_text(registration: TournamentRegistrationCard) -> str:
         "",
         "<b>Профиль Polemica</b>",
         f"Ник: {escape(registration.polemica_nickname or 'не указан')}",
-        f"Polemica ID: {registration.polemica_id or 'не указан'}",
+        _polemica_profile_text(registration.polemica_id),
         "",
         "<b>Профиль бота</b>",
         f"ID профиля: {registration.user_profile_id}",

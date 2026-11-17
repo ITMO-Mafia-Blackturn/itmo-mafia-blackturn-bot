@@ -221,3 +221,17 @@ def get_registration_review_keyboard(
             ]
         )
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def get_registration_details_keyboard(
+    tournament_id: int,
+) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Подробнее",
+                    callback_data=f"tournament_admin:details:{tournament_id}",
+                )
+            ]
+        ]
+    )

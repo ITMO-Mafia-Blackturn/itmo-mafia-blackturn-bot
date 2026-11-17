@@ -40,7 +40,9 @@ tournament_admin = Router()
 from bot.tournament_admin.common import _is_admin
 from bot.tournament_admin.review_views import _registration_list_text
 
-@tournament_admin.callback_query(F.data.startswith("tournament_admin:"))
+@tournament_admin.callback_query(
+    F.data.regexp(r"^tournament_admin:(?:registrations|guests|passes):\d+$")
+)
 async def handle_export_callback(callback: CallbackQuery, state: FSMContext) -> None:
         if not await _is_admin(callback.from_user.id):
             await callback.answer("Нет доступа.", show_alert=True)
@@ -62,7 +64,11 @@ async def handle_export_callback(callback: CallbackQuery, state: FSMContext) -> 
                 await callback.message.answer("На этот турнир пока никто не записался.")
             else:
                 for text in _registration_list_text(tournament.name, registrations):
-                    await callback.message.answer(text, parse_mode="HTML")
+                    await callback.message.answer(
+                        text,
+                        reply_markup=kb.get_registration_details_keyboard(tournament_id),
+                        parse_mode="HTML",
+                    )
             await callback.answer()
             return
 

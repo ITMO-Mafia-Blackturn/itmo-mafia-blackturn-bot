@@ -1,6 +1,4 @@
 import logging
-from html import escape
-from datetime import datetime
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -9,24 +7,16 @@ import bot.keyboards as kb
 from bot.tournament_user.states import TournamentUserState
 from services.polemica_service import PolemicaProfileError, get_polemica_nickname
 from services.tournament_service import (
-    TournamentRegistrationCard,
-    apply_for_tournament,
-    count_active_registrations,
-    count_active_guest_registrations,
-    get_registration,
-    get_approved_registrations,
-    get_tournament,
     get_tournaments,
     get_user_profile,
-    registration_status,
     save_player_photo,
     save_tournament_player,
     update_user_polemica_id,
-    withdraw_from_tournament,
 )
 
 
 tournament_user = Router()
+logger = logging.getLogger(__name__)
 
 
 

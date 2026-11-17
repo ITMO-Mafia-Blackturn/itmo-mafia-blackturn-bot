@@ -1,6 +1,7 @@
 from aiogram.fsm.state import State, StatesGroup
 
 class Mailing(StatesGroup):
+    choose_audience = State()
     choose_event = State()
     message = State()
     confirm = State()

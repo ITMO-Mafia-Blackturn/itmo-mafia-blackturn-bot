@@ -1,32 +1,25 @@
 import logging
-from html import escape
-from datetime import datetime
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from pathlib import Path
 import httpx
 import bot.keyboards as kb
+from aiogram.types import FSInputFile
+
 from bot.tournament_user.states import TournamentUserState
 from services.polemica_service import PolemicaProfileError, get_polemica_nickname
 from services.tournament_service import (
-    TournamentRegistrationCard,
-    apply_for_tournament,
-    count_active_registrations,
-    count_active_guest_registrations,
-    get_registration,
-    get_approved_registrations,
-    get_tournament,
     get_tournaments,
     get_user_profile,
-    registration_status,
     save_player_photo,
     save_tournament_player,
     update_user_polemica_id,
-    withdraw_from_tournament,
 )
 
 
 tournament_user = Router()
+logger = logging.getLogger(__name__)
 
 
 
@@ -78,8 +71,11 @@ async def continue_tournament_setup(
     await state.update_data(tournament_profile_id=profile.id)
     if not has_photo:
         await state.set_state(TournamentUserState.photo)
-        await message.answer(
-            "Чтобы отправить заявку, пришлите фотографию профиля в сообщении."
+        BASE_DIR = Path(__file__).resolve().parent
+        photo_path = BASE_DIR / "photo.jpg"
+        await message.answer_photo(
+            photo=FSInputFile(photo_path),
+            caption="Чтобы отправить заявку, пришлите фотографию профиля (не скриншот с полемики; она будет использоваться для плашек на турнире как у игроков 1-3 на фотографии) в сообщении."
         )
     else:
         await show_active_tournaments(message, state)
